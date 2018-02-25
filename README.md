@@ -13,7 +13,6 @@
         export MCM_OCP_PASS=superpass       # will become ocp_admin password
         export MCM_OCP_DOMAIN=example.com   # will become cluster domain  
         export MCM_OCP_DNSIP=192.168.1.1    # set to DNS server that knows how to resolve cluster hostnames
-        export MCM_OCP_NETWORK_IFC=enp0s3   # interface name inside the vm
 
 
 3. Build the four cluster VMs (master, infra, node-01, node-02):
@@ -24,7 +23,6 @@
             -var "ocp_pass=${MCM_OCP_PASS}" \
             -var "domain=${MCM_OCP_DOMAIN}" \
             -var "dnsip=${MCM_OCP_DNSIP}" \
-            -var "network_ifc=${MCM_OCP_NETWORK_IFC}" \
             centos7-vbox-ovf.json
 
 
@@ -34,7 +32,25 @@
         ./import.sh
         
 
-5. Next steps...
+5. Start all the VMs
+
+
+        ./start-all.sh
+        
+6. 
         
 
 
+## Supporting Services
+
+A few items should exist outside the OpenShift cluster.
+
+### DNS
+
+Using `dnsmasq` available on most modern linux systems is probably the simplest option. `dnsmasq` supports editing your
+local hosts file to add records, so unless you're trying to configure a production DNS configuration, this will be
+simplest for sandbox testing.
+
+Reference: https://help.ubuntu.com/community/Dnsmasq
+
+1. asdfasdf

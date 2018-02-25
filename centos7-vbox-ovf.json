@@ -7,7 +7,6 @@
     "ocp_user": "ocp_admin",
     "domain": "nip.io",
     "dnsip": "192.168.1.1",
-    "network_ifc": "enp0s3",
     "master01_hostname": "ocp-master-01",
     "master01_mac": "008027b08b00",
     "infra01_hostname": "ocp-infra-01",
@@ -23,7 +22,8 @@
   },
   "builders": [
     {
-      "name": "master01",
+      "name": "{{user `master01_hostname`}}",
+      "headless": true,
       "type": "virtualbox-ovf",
       "source_path": "output/vbox/openshift-baseline/openshift-baseline.ovf",
       "output_directory": "output/vbox/{{user `master01_hostname`}}",
@@ -36,7 +36,8 @@
       "shutdown_command": "echo '{{user `root_new_pass`}}' | sudo -S shutdown -P now"
     },
     {
-      "name": "infra01",
+      "name": "{{user `infra01_hostname`}}",
+      "headless": true,
       "type": "virtualbox-ovf",
       "source_path": "output/vbox/openshift-baseline/openshift-baseline.ovf",
       "output_directory": "output/vbox/{{user `infra01_hostname`}}",
@@ -49,7 +50,8 @@
       "shutdown_command": "echo '{{user `root_new_pass`}}' | sudo -S shutdown -P now"
     },
     {
-      "name": "node01",
+      "name": "{{user `node01_hostname`}}",
+      "headless": true,
       "type": "virtualbox-ovf",
       "source_path": "output/vbox/openshift-baseline/openshift-baseline.ovf",
       "output_directory": "output/vbox/{{user `node01_hostname`}}",
@@ -62,7 +64,8 @@
       "shutdown_command": "echo '{{user `root_new_pass`}}' | sudo -S shutdown -P now"
     },
     {
-      "name": "node02",
+      "name": "{{user `node02_hostname`}}",
+      "headless": true,
       "type": "virtualbox-ovf",
       "source_path": "output/vbox/openshift-baseline/openshift-baseline.ovf",
       "output_directory": "output/vbox/{{user `node02_hostname`}}",
@@ -81,7 +84,6 @@
       "environment_vars": [
         "DOMAIN={{user `domain`}}",
         "DNSIP={{user `dnsip`}}",
-        "NETWORK_IFC={{user `network_ifc`}}",
         "ROOT_NEW_PASS={{user `root_new_pass`}}",
         "OCP_PASS={{user `ocp_pass`}}",
         "OCP_USER={{user `ocp_user`}}"
@@ -90,17 +92,17 @@
     },
     {
       "type": "shell",
-      "only": ["master01"],
+      "only": ["{{user `master01_hostname`}}"],
       "script": "{{user `master_script`}}"
     },
     {
       "type": "shell",
-      "except": ["master01"],
+      "except": ["{{user `master01_hostname`}}"],
       "script": "{{user `node_script`}}"
     },
     {
       "type": "shell",
-      "only": ["infra01"],
+      "only": ["{{user `infra01_hostname`}}"],
       "environment_vars": [
         "OCP_USER={{user `ocp_user`}}",
         "MASTER01_HOST={{user `master01_hostname`}}",
