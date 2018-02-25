@@ -1,0 +1,48 @@
+{
+  "variables": {
+    "ssh_name": "root",
+    "ssh_pass": "s0m3password",
+    "root_pass": "s0m3password",
+    "output_vm_name": "openshift-baseline",
+    "baseline_script": "prov/baseline.sh"
+  },
+  "builders":
+  [
+    {
+      "type": "virtualbox-iso",
+      "guest_os_type": "RedHat_64",
+      "iso_url": "http://mirrors.ocf.berkeley.edu/centos/7/isos/x86_64/CentOS-7-x86_64-Minimal-1708.iso",
+      "iso_checksum": "bba314624956961a2ea31dd460cd860a77911c1e0a56e4820a12b9c5dad363f5",
+      "iso_checksum_type": "sha256",
+      "output_directory": "output/vbox/{{user `output_vm_name`}}",
+      "vm_name": "{{user `output_vm_name`}}",
+      "ssh_host_port_min": 2222,
+      "ssh_host_port_max": 2229,
+      "ssh_timeout": "9900s",
+      "ssh_username": "{{user `ssh_name`}}",
+      "ssh_password": "{{user `ssh_pass`}}",
+      "shutdown_command": "echo '{{user `root_pass`}}' | sudo -S shutdown -P now",
+      "disk_size": 102400,
+      "vboxmanage": [
+        ["modifyvm", "{{.Name}}", "--memory", "16384"],
+        ["modifyvm", "{{.Name}}", "--cpus", "4"]
+      ],
+      "http_directory": "httpdir",
+      "http_port_min": 10082,
+      "http_port_max": 10089,
+      "boot_command": [
+        "<tab> text ks=http://{{ .HTTPIP }}:{{ .HTTPPort }}/centos74-ks.cfg<enter><wait>"
+      ]
+    }
+  ],
+  "provisioners": [
+    {
+      "type": "shell",
+      "environment_vars": [
+        "NEW_HOSTNAME={{user `output_vm_name`}}"
+      ],
+      "script": "{{user `baseline_script`}}"
+    }
+  ]
+}
+

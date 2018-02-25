@@ -1,0 +1,114 @@
+{
+  "variables": {
+    "ssh_name": "root",
+    "ssh_pass": "s0m3password",
+    "root_new_pass": "s0m3password",
+    "ocp_pass": "s0m3password",
+    "ocp_user": "ocp_admin",
+    "domain": "nip.io",
+    "dnsip": "192.168.1.1",
+    "network_ifc": "enp0s3",
+    "master01_hostname": "ocp-master-01",
+    "master01_mac": "008027b08b00",
+    "infra01_hostname": "ocp-infra-01",
+    "infra01_mac": "008027b08b01",
+    "node01_hostname": "ocp-node-01",
+    "node01_mac": "008027b08b02",
+    "node02_hostname": "ocp-node-02",
+    "node02_mac": "008027b08b03",
+    "all_script": "prov/all.sh",
+    "master_script": "prov/master.sh",
+    "infra_script": "prov/infra.sh",
+    "node_script": "prov/node.sh"
+  },
+  "builders": [
+    {
+      "name": "master01",
+      "type": "virtualbox-ovf",
+      "source_path": "output/vbox/openshift-baseline/openshift-baseline.ovf",
+      "output_directory": "output/vbox/{{user `master01_hostname`}}",
+      "vm_name": "{{user `master01_hostname`}}",
+      "ssh_username": "{{user `ssh_name`}}",
+      "ssh_password": "{{user `ssh_pass`}}",
+      "vboxmanage": [
+        [ "modifyvm", "{{.Name}}", "--macaddress1", "{{user `master01_mac`}}" ]
+      ],
+      "shutdown_command": "echo '{{user `root_new_pass`}}' | sudo -S shutdown -P now"
+    },
+    {
+      "name": "infra01",
+      "type": "virtualbox-ovf",
+      "source_path": "output/vbox/openshift-baseline/openshift-baseline.ovf",
+      "output_directory": "output/vbox/{{user `infra01_hostname`}}",
+      "vm_name": "{{user `infra01_hostname`}}",
+      "ssh_username": "{{user `ssh_name`}}",
+      "ssh_password": "{{user `ssh_pass`}}",
+      "vboxmanage": [
+        [ "modifyvm", "{{.Name}}", "--macaddress1", "{{user `infra01_mac`}}" ]
+      ],
+      "shutdown_command": "echo '{{user `root_new_pass`}}' | sudo -S shutdown -P now"
+    },
+    {
+      "name": "node01",
+      "type": "virtualbox-ovf",
+      "source_path": "output/vbox/openshift-baseline/openshift-baseline.ovf",
+      "output_directory": "output/vbox/{{user `node01_hostname`}}",
+      "vm_name": "{{user `node01_hostname`}}",
+      "ssh_username": "{{user `ssh_name`}}",
+      "ssh_password": "{{user `ssh_pass`}}",
+      "vboxmanage": [
+        [ "modifyvm", "{{.Name}}", "--macaddress1", "{{user `node01_mac`}}" ]
+      ],
+      "shutdown_command": "echo '{{user `root_new_pass`}}' | sudo -S shutdown -P now"
+    },
+    {
+      "name": "node02",
+      "type": "virtualbox-ovf",
+      "source_path": "output/vbox/openshift-baseline/openshift-baseline.ovf",
+      "output_directory": "output/vbox/{{user `node02_hostname`}}",
+      "vm_name": "{{user `node02_hostname`}}",
+      "ssh_username": "{{user `ssh_name`}}",
+      "ssh_password": "{{user `ssh_pass`}}",
+      "vboxmanage": [
+        [ "modifyvm", "{{.Name}}", "--macaddress1", "{{user `node02_mac`}}" ]
+      ],
+      "shutdown_command": "echo '{{user `root_new_pass`}}' | sudo -S shutdown -P now"
+    }
+  ],
+  "provisioners": [
+    {
+      "type": "shell",
+      "environment_vars": [
+        "DOMAIN={{user `domain`}}",
+        "DNSIP={{user `dnsip`}}",
+        "NETWORK_IFC={{user `network_ifc`}}",
+        "ROOT_NEW_PASS={{user `root_new_pass`}}",
+        "OCP_PASS={{user `ocp_pass`}}",
+        "OCP_USER={{user `ocp_user`}}"
+      ],
+      "script": "{{user `all_script`}}"
+    },
+    {
+      "type": "shell",
+      "only": ["master01"],
+      "script": "{{user `master_script`}}"
+    },
+    {
+      "type": "shell",
+      "except": ["master01"],
+      "script": "{{user `node_script`}}"
+    },
+    {
+      "type": "shell",
+      "only": ["infra01"],
+      "environment_vars": [
+        "OCP_USER={{user `ocp_user`}}",
+        "MASTER01_HOST={{user `master01_hostname`}}",
+        "INFRA01_HOST={{user `infra01_hostname`}}",
+        "NODE01_HOST={{user `node01_hostname`}}",
+        "NODE02_HOST={{user `node02_hostname`}}"
+      ],
+      "script": "{{user `infra_script`}}"
+    }
+  ]
+}
