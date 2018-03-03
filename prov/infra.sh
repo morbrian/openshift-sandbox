@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export HOST_LIST="${MASTER01_HOST} ${NODE01_HOST} ${NODE02_HOST}"
+export HOST_LIST="${INFRA01_HOST} ${MASTER01_HOST} ${NODE01_HOST} ${NODE02_HOST}"
 
 sudo -i -u${OCP_USER} git clone https://github.com/openshift/openshift-ansible.git
 

@@ -1,0 +1,93 @@
+#
+# Reference:
+# https://docs.openshift.com/container-platform/3.6/install_config/install/advanced_install.html
+#
+
+[OSEv3:children]
+nodes
+nfs
+masters
+etcd
+
+[OSEv3:vars]
+#
+# core configuration
+#
+
+containerized=True
+deployment_type=origin
+openshift_deployment_type=origin
+openshift_release=3.6
+openshift_pkg_version=v3.6.0
+openshift_image_tag=v3.6.0
+openshift_master_cluster_public_hostname=cluster.lionel.io
+openshift_master_default_subdomain=cluster.lionel.io
+openshift_master_identity_providers=[{'name': 'htpasswd_auth', 'login': 'true', 'challenge': 'true', 'kind': 'HTPasswdPasswordIdentityProvider', 'filename': '/etc/origin/master/htpasswd'}]
+ansible_ssh_user=ocp_admin
+ansible_become=true
+openshift_master_cluster_hostname=cluster.lionel.io
+openshift_override_hostname_check=true
+openshift_router_selector="region=infra"
+openshift_registry_selector="region=infra"
+
+#
+# metrics
+#
+# Requires persistent volumes to be available with appropriate labels.
+# See: vols/metrics-pv.yml, expects hostpath on infra node.
+# TODO: can we provision volume with ansible?
+#
+#openshift_hosted_metrics_deploy=true
+##openshift_metrics_install_metrics=True
+#openshift_hosted_metrics_deployer_prefix=registry.access.redhat.com/openshift3/
+##openshift_hosted_metrics_deployer_version=v3.6.0
+#openshift_metrics_hawkular_hostname=hawkular-metrics.cluster.lionel.io
+#openshift_metrics_cassandra_storage_type=pv
+#openshift_metrics_cassandra_pvc_size=50G
+#openshift_metrics_duration=30
+#openshift_metrics_resolution=30s
+#openshift_metrics_cassandra_nodeselector={"region":"infra"}
+#openshift_metrics_hawkular_nodeselector={"region":"infra"}
+#openshift_metrics_heapster_nodeselector={"region":"infra"}
+
+#
+# logging
+#
+# Requires persistent volumes to be available with appropriate labels.
+# See: vols/logging-es-pv.yml and vols/logging-es-ops.pv.yml, expected  host paths on infra node.
+# TODO: can we provision volumes with ansible?
+#
+#openshift_hosted_logging_deploy=true
+#openshift_hosted_logging_deployer_prefix=registry.access.redhat.com/openshift3/
+##openshift_hosted_logging_deployer_version=v3.6.0
+##openshift_hosted_logging_storage_kind=
+#openshift_hosted_logging_hostname=kibana-logging.cluster.lionel.io
+#openshift_logging_use_ops=true
+#openshift_logging_namespace=logging
+#openshift_logging_es_cluster_size=1
+#openshift_logging_es_nodeselector={"region":"infra"}
+#openshift_logging_es_pv_selector={"logging":"logging-es"}
+#openshift_logging_es_pvc_size=25Gi
+#openshift_logging_kibana_nodeselector={"region":"infra"}
+#openshift_logging_curator_nodeselector={"region":"infra"}
+#openshift_logging_es_ops_nodeselector={"region":"infra"}
+#openshift_logging_es_ops_pv_selector={"logging":"logging-es-ops"}
+#openshift_logging_es_ops_pvc_size=25Gi
+#openshift_logging_kibana_ops_nodeselector={"region":"infra"}
+#openshift_logging_curator_ops_nodeselector={"region":"infra"}
+
+[nodes]
+ocp-infra-01.lionel.io  openshift_public_ip=172.16.22.201 openshift_ip=172.16.22.201 openshift_public_hostname=ocp-infra-01.lionel.io openshift_hostname=ocp-infra-01.lionel.io containerized=True openshift_node_labels="{'region': 'infra'}" openshift_schedulable=True ansible_become=yes
+ocp-master-01.lionel.io  openshift_public_ip=172.16.22.200 openshift_ip=172.16.22.200 openshift_public_hostname=ocp-master-01.lionel.io openshift_hostname=ocp-master-01.lionel.io containerized=True connect_to=ocp-master-01.lionel.io openshift_schedulable=False
+ocp-node-01.lionel.io  openshift_public_ip=172.16.22.202 openshift_ip=172.16.22.202 openshift_public_hostname=ocp-node-01.lionel.io openshift_hostname=ocp-node-01.lionel.io containerized=True connect_to=ocp-node-01.lionel.io openshift_node_labels="{'region': 'apps'}" openshift_schedulable=True
+ocp-node-02.lionel.io  openshift_public_ip=172.16.22.203 openshift_ip=172.16.22.203 openshift_public_hostname=ocp-node-02.lionel.io openshift_hostname=ocp-node-02.lionel.io containerized=True connect_to=ocp-node-02.lionel.io openshift_node_labels="{'region': 'apps'}" openshift_schedulable=True
+
+[nfs]
+ocp-infra-01.lionel.io  openshift_public_ip=172.16.22.201 openshift_ip=172.16.22.201 openshift_public_hostname=ocp-infra-01.lionel.io openshift_hostname=ocp-infra-01.lionel.io containerized=True connect_to=ocp-infra-01.lionel.io
+
+[masters]
+ocp-master-01.lionel.io  openshift_public_ip=172.16.22.200 openshift_ip=172.16.22.200 openshift_public_hostname=ocp-master-01.lionel.io openshift_hostname=ocp-master-01.lionel.io containerized=True connect_to=ocp-master-01.lionel.io
+
+[etcd]
+ocp-master-01.lionel.io  openshift_public_ip=172.16.22.200 openshift_ip=172.16.22.200 openshift_public_hostname=ocp-master-01.lionel.io openshift_hostname=ocp-master-01.lionel.io containerized=True connect_to=ocp-master-01.lionel.io
+

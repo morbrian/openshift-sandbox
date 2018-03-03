@@ -26,7 +26,7 @@ systemctl restart network
 # https://docs.openshift.org/latest/admin_guide/overcommit.html#disabling-swap-memory
 swapoff -a
 
-# configure ssh to be a littler more restrictive
+# configure ssh to be more restrictive
 sed -i 's/^#PermitRootLogin yes/PermitRootLogin no/' /etc/ssh/sshd_config
 cat AllowGroups sshusers >> /etc/ssh/sshd_config
 groupadd -r sshusers

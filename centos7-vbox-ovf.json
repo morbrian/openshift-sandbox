@@ -108,7 +108,11 @@
         "MASTER01_HOST={{user `master01_hostname`}}",
         "INFRA01_HOST={{user `infra01_hostname`}}",
         "NODE01_HOST={{user `node01_hostname`}}",
-        "NODE02_HOST={{user `node02_hostname`}}"
+        "NODE02_HOST={{user `node02_hostname`}}",
+        "MASTER01_HOST={{user `master01_hostname`}}.{{user `domain`}}",
+        "INFRA01_HOST={{user `infra01_hostname`}}.{{user `domain`}}",
+        "NODE01_HOST={{user `node01_hostname`}}.{{user `domain`}}",
+        "NODE02_HOST={{user `node02_hostname`}}.{{user `domain`}}"
       ],
       "script": "{{user `infra_script`}}"
     }
