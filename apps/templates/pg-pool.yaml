@@ -1,0 +1,123 @@
+apiVersion: v1
+kind: Template
+metadata:
+  annotations:
+    description: Crunchy PGPool
+    iconClass: icon-database
+    tags: database,postgresql,pool
+  name: pg-pool
+objects:
+- apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      name: ${PG_PGPOOL_SERVICE_NAME}
+    name: ${PG_PGPOOL_SERVICE_NAME}
+  spec:
+    ports:
+    - nodePort: 0
+      port: 5432
+      protocol: TCP
+      targetPort: 5432
+    selector:
+      name: ${PG_PGPOOL_SERVICE_NAME}
+  status:
+    loadBalancer: {}
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    creationTimestamp: null
+    name: ${PG_PGPOOL_SERVICE_NAME}
+  spec:
+    replicas: 1
+    selector:
+      name: ${PG_PGPOOL_SERVICE_NAME}
+    strategy:
+      activeDeadlineSeconds: 86401
+      recreateParams:
+        timeoutSeconds: 86400
+      resources: {}
+      type: Rolling
+    template:
+      metadata:
+        creationTimestamp: null
+        labels:
+          name: ${PG_PRIMARY_SERVICE_NAME}
+          replicatype: trigger
+      spec:
+        containers:
+        - env:
+          - name: PG_PRIMARY_SERVICE_NAME
+            value: ${PG_PRIMARY_SERVICE_NAME}
+          - name: PG_REPLICA_SERVICE_NAME
+            value: ${PG_REPLICA_SERVICE_NAME}
+          - name: PG_USERNAME
+            valueFrom:
+              secretKeyRef:
+                key: pg-username
+                name: pg-secret
+          - name: PG_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                key: pg-password
+                name: pg-secret
+          image: ${CCP_IMAGE_PREFIX}/crunchy-pgpool:${CCP_IMAGE_TAG}
+          securityContext:
+            privileged: false
+          terminationMessagePath: /dev/termination-log
+          volumeMounts:
+          - mountPath: /pgconf
+            name: pgconf
+            readOnly: true
+        securityContext:
+          supplementalGroups:
+          - 65534
+        volumes:
+        - name: pgconf
+          configMap:
+            name: pgconf
+            items:
+            - key: pgconf
+              path: postgresql.conf
+            - key: pghba
+              path: pg_hba.conf
+            - key: setup
+              path: setup.sql
+            - key: pgbackrest
+              path: pgbackrest.conf
+parameters:
+- description: project namespace
+  name: NAMESPACE
+  value: changeit
+- description: The image prefix to use
+  name: CCP_IMAGE_PREFIX
+  value: crunchydata
+- description: The image tag to use
+  name: CCP_IMAGE_TAG
+  value: centos7-10.2-1.8.0
+- name: PG_PRIMARY_SERVICE_NAME
+  value: pg-primary
+- name: PG_REPLICA_SERVICE_NAME
+  value: pg-primary
+
+
+
+
+- description: PostgreSQL application username
+  value: sandbox
+  name: PG_USER
+- description: PostgreSQL application password
+  from: '[a-zA-Z0-9]{12}'
+  generate: expression
+  name: PG_PASSWORD
+- description: PostgreSQL root password
+  from: '[a-zA-Z0-9]{12}'
+  generate: expression
+  name: PG_ROOT_PASSWORD
+- description: PostgreSQL master user (often master)
+  value: master
+  name: PG_PRIMARY_USER
+- description: PostgreSQL master password
+  from: '[a-zA-Z0-9]{12}'
+  generate: expression
+  name: PG_PRIMARY_PASSWORD

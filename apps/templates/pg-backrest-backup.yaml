@@ -1,0 +1,84 @@
+apiVersion: v1
+kind: Template
+metadata:
+  annotations:
+    description: Crunchy PG BackRest
+    iconClass: icon-database
+    tags: database,postgresql,replication,backup,backrest
+  creationTimestamp: null
+  name: pg-backrest-backup
+objects:
+- apiVersion: v1
+  kind: PersistentVolumeClaim
+  metadata:
+    name: ${NAMESPACE}-backup-pvc
+  spec:
+    accessModes:
+    - ReadWriteMany
+    resources:
+      requests:
+        storage: 1Gi
+- apiVersion: v1
+  kind: CronJob
+  metadata:
+    name: pi
+  spec:
+    schedule: "*/1 * * * *"
+    jobTemplate:
+      spec:
+        template:
+          metadata:
+            labels:
+              parent: "cronjobpi"
+          spec:
+            volumes:
+              - name: pgdata
+                persistentVolumeClaim:
+                  claimName: ${NAMESPACE}-cronjob-data-pvc
+              - name: pgconf
+                configMap:
+                  name: pgconf
+                  items:
+                  - key: pgconf
+                    path: postgresql.conf
+                  - key: pghba
+                    path: pg_hba.conf
+                  - key: setup
+                    path: setup.sql
+                  - key: pgbackrest
+                    path: pgbackrest.conf
+              - name: backup
+                persistentVolumeClaim:
+                  claimName: ${NAMESPACE}-backup-pvc
+              - name: backrestrepo
+                persistentVolumeClaim:
+                  claimName: ${NAMESPACE}-backrestrepo-pvc
+            containers:
+            - name: test-backup
+              image: ${CCP_IMAGE_PREFIX}/crunchy-backup:${CCP_IMAGE_TAG}
+              command: ${COMMAND}
+              volumeMounts:
+              - mountPath: /pgdata
+                name: pgdata
+                readOnly: false
+              - mountPath: /pgconf
+                name: pgconf
+              - mountPath: /backup
+                name: backup
+                readOnly: false
+              - mountPath: /backrestrepo
+                name: backrestrepo
+                readOnly: false
+            restartPolicy: OnFailure
+- description: project namespace
+  name: NAMESPACE
+  value: changeit
+- description: The image prefix to use
+  name: CCP_IMAGE_PREFIX
+  value: 443/crunchydata
+- description: The image tag to use
+  name: CCP_IMAGE_TAG
+  value: centos7-10.2-1.8.0
+- description: The command to run
+  name: COMMAND
+  value: ["echo 'hello world'", "read"]

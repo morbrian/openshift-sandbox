@@ -1,0 +1,131 @@
+apiVersion: v1
+kind: Template
+metadata:
+  annotations:
+    description: Persistent volumes needed for PostgreSQL defined as sandbox example.
+    iconClass: icon-database
+    tags: database,postgresql,crunchy
+  creationTimestamp: null
+  name: pg-cluster-vols
+objects:
+- apiVersion: v1
+  kind: PersistentVolume
+  metadata:
+    labels:
+      postgres: ${NAMESPACE}-${PG_MODE}-data
+    name: ${NAMESPACE}-${PG_MODE}-data-pv
+  spec:
+    claimRef:
+      name: ${NAMESPACE}-${PG_MODE}-data-pvc
+      namespace: ${NAMESPACE}
+    accessModes:
+    - ReadWriteOnce
+    capacity:
+      storage: ${PG_DATA_STORAGE_SIZE}
+    hostPath:
+      path: ${PG_DATA_PV_PATH}
+    persistentVolumeReclaimPolicy: Retain
+- apiVersion: v1
+  kind: PersistentVolume
+  metadata:
+    labels:
+      postgres: ${NAMESPACE}-${PG_MODE}-wal
+    name: ${NAMESPACE}-${PG_MODE}-wal-pv
+  spec:
+    claimRef:
+      name: ${NAMESPACE}-${PG_MODE}-wal-pvc
+      namespace: ${NAMESPACE}
+    accessModes:
+    - ReadWriteOnce
+    capacity:
+      storage: ${PG_WAL_STORAGE_SIZE}
+    hostPath:
+      path: ${PG_WAL_PV_PATH}
+    persistentVolumeReclaimPolicy: Retain
+- apiVersion: v1
+  kind: PersistentVolume
+  metadata:
+    labels:
+      postgres: ${NAMESPACE}-${PG_MODE}-log
+    name: ${NAMESPACE}-${PG_MODE}-log-pv
+  spec:
+    claimRef:
+      name: ${NAMESPACE}-${PG_MODE}-log-pvc
+      namespace: ${NAMESPACE}
+    accessModes:
+    - ReadWriteOnce
+    capacity:
+      storage: ${PG_LOG_STORAGE_SIZE}
+    hostPath:
+      path: ${PG_LOG_PV_PATH}
+    persistentVolumeReclaimPolicy: Retain
+- apiVersion: v1
+  kind: PersistentVolume
+  metadata:
+    labels:
+      postgres: ${NAMESPACE}-${PG_MODE}-backup
+    name: ${NAMESPACE}-${PG_MODE}-backup-pv
+  spec:
+    claimRef:
+      name: ${NAMESPACE}-${PG_MODE}-backup-pvc
+      namespace: ${NAMESPACE}
+    accessModes:
+    - ReadWriteOnce
+    capacity:
+      storage: ${PG_BACKUP_STORAGE_SIZE}
+    hostPath:
+      path: ${PG_BACKUP_PV_PATH}
+    persistentVolumeReclaimPolicy: Retain
+- apiVersion: v1
+  kind: PersistentVolume
+  metadata:
+    labels:
+      postgres: ${NAMESPACE}-${PG_MODE}-backrestrepo
+    name: ${NAMESPACE}-${PG_MODE}-backrestrepo-pv
+  spec:
+    claimRef:
+      name: ${NAMESPACE}-${PG_MODE}-backrestrepo-pvc
+      namespace: ${NAMESPACE}
+    accessModes:
+    - ReadWriteOnce
+    capacity:
+      storage: ${PG_BACKRESTREPO_STORAGE_SIZE}
+    hostPath:
+      path: ${PG_BACKRESTREPO_PV_PATH}
+    persistentVolumeReclaimPolicy: Retain
+parameters:
+- name: NAMESPACE
+  value: project
+- name: PG_MODE
+  value: primary
+- description: Primary Data path for pgdata.
+  name: PG_DATA_PV_PATH
+  value: /var/appdata/namespace/data
+- description: Primary Wal path for pgwal.
+  name: PG_WAL_PV_PATH
+  value: /var/appdata/namespace/wal
+- description: Host path of log.
+  name: PG_LOG_PV_PATH
+  value: /var/appdata/namespace/log
+- description: Host path of backup database.
+  name: PG_BACKUP_PV_PATH
+  value: /var/appdata/namespace/backup
+- description: Host path of backrest repo.
+  name: PG_BACKRESTREPO_PV_PATH
+  value: /var/appdata/namespace/backrestrepo
+- description: Requested size of data volume
+  name: PG_DATA_STORAGE_SIZE
+  value: 5Gi
+- description: Requested size of wal volume
+  name: PG_WAL_STORAGE_SIZE
+  value: 3Gi
+- description: Requested size of log volume
+  name: PG_LOG_STORAGE_SIZE
+  value: 2Gi
+- description: Requested size of backup volume
+  name: PG_BACKUP_STORAGE_SIZE
+  value: 5Gi
+- description: Requested size of backrest volume
+  name: PG_BACKRESTREPO_STORAGE_SIZE
+  value: 5Gi
+
