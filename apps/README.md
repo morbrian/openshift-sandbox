@@ -170,6 +170,29 @@ The user adding templates must have privileges to add items to the `openshift` n
             ls -alh /pglog/pg-replica-log
             ls -alh /pgwal/pg-replica-wal
 
+ 
+ ## Verify PostgreSQL Replication
+ 
+ 1. Use `oc rsh` to connect to database with psql and create sample table.
+ 
+        oc rsh $(oc get pod --output=name |grep primary) \
+            psql -Usandbox -dsandbox -c "create table sample (id integer, name varchar, details varchar)"
+        oc rsh $(oc get pod --output=name |grep primary) \
+            psql -Usandbox -dsandbox -c "insert into sample (id, name, details) values (1, 'apple', 'red fruit')"
+
+2. Verify data is present in primary.
+
+         oc rsh $(oc get pod --output=name |grep primary) \
+            psql -Usandbox -dsandbox -c "select * from sample"
+            
+3. Verify data is present in replica.
+
+         oc rsh $(oc get pod --output=name |grep replica) \
+            psql -Usandbox -dsandbox -c "select * from sample"
+            
+            
+            
+            
 
 
 [web-console]: https://cluster.example.com:8443  "Origin Web Console"
