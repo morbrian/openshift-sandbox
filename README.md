@@ -97,7 +97,10 @@ provides some reasonable next steps by making some assumptions about the cluster
 
 2. The `oc` binary is available for any platform, optionally install it on another system.
 
-    1. A link for where to find the `oc` binary can be found on the [web-conole] by going to the help `?` and choosing *Command Line Tools*, currently this links to https://github.com/openshift/origin/releases/tag/v3.7.1
+    1. A link for where to find the `oc` binary can be found on the [web-conole] by going to the help `?` and choosing *Command Line Tools*, 
+    then find the release compatible with the installed server version. 
+    
+    Right now, the latest for 3.6 is: https://github.com/openshift/origin/releases/tag/v3.6.1
     
     1. Download and extract the client-tools archive for your platform, putting the `oc` binary in your PATH.
     

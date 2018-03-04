@@ -189,10 +189,94 @@ The user adding templates must have privileges to add items to the `openshift` n
 
          oc rsh $(oc get pod --output=name |grep replica) \
             psql -Usandbox -dsandbox -c "select * from sample"
-            
-            
-            
-            
 
+
+## Verify PostgreSQL pg-backrest integrity
+
+As we have a replica, it would be best to perform the backup from there to save cpu and io on the master.
+
+The instructions below demonstrate using the primary. -- we'll update later with the better replica option.
+
+1. Put some data in the database.
+
+        oc rsh $(oc get pod --output=name |grep primary) \
+            psql -Usandbox -dsandbox -c "insert into sample (id, name, details) values (2, 'banana', 'yellow fruit')"
+
+2. Run a backup with pgbackrest command. 
+
+        # connect to container in new bash shell (the new shell configures user id as `postgres`)
+        oc rsh $(oc get pod --output=name |grep primary) bash
+        
+        # run initial backup
+        pgbackrest --stanza=db --log-level-console=info backup
+        
+        # review backup
+        pgbackrest info
+        
+3. Make some changes to the data in database.
+
+        psql -Usandbox -dsandbox -c "delete from sample where id < 2; update sample set name='lemon' where id=2"
+        
+        # verify changes
+        psql -Usandbox -dsandbox -c "select * from sample"
+
+4. Scale down primary and replica using [web-console]
+
+    Commandline Alternative:
+    
+            oc scale dc pg-replica --replicas=0
+            oc scale dc pg-primary --replicas=0
+
+5. Perform a Restore (Reference: https://github.com/CrunchyData/crunchy-containers/blob/master/docs/backrest.adoc)
+
+    1. Log into ocp-node-01 with ssh and delete all data from primary and replica:
+    
+        **Note how this will also remove the `pg_wal` and `pg_log` soft links that were configured earlier**
+    
+            ssh ocp_admin@ocp-node-01
+            sudo find /var/appdata/sandbox/{primary,replica}/{data/pg-primary,wal} -mindepth 1 -delete
+            
+    2. Use [web-console], add to project, select pg-backrest-restore template.
+    
+        * Change namespace to the project name (ie. sandbox)
+        * Expect Job to complete successfully.
+        
+    3. Use [web-console] terminal to review restore.
+    
+            psql -Usandbox -dsandbox -c "select * from sample"
+            
+        Expect data to be in same state we left it in before deleting the files.
+
+    4. Repair primary configuration of `pgwal` and `pglog`.
+    
+        **If physical storage is not on same partition, this must be done with postgresql stopped**
+    
+            # pglog
+            mv /pgdata/pg-primary/pg_log/* /pglog/pg-primary-log
+            rmdir /pgdata/pg-primary/pg_log
+            ln -sf /pglog/pg-primary-log /pgdata/pg-primary/pg_log
+            
+            # pgwal
+            mv /pgdata/pg-primary/pg_wal /pgwal/pg-primary-wal
+            ln -sf /pgwal/pg-primary-wal /pgdata/pg-primary/pg_wal
+
+    5. Scale up replica, use [web-console] terminal to check replicated data.
+    
+            psql -Usandbox -dsandbox -c "select * from sample"
+    
+    6. Repair replica configuration of `pgwal` and `pglog`.
+    
+        **If physical storage is not on same partition, this must be done with postgresql stopped**
+    
+            # pglog
+            mv /pgdata/pg-replica/pg_log/* /pglog/pg-replica-log
+            rmdir /pgdata/pg-replica/pg_log
+            ln -sf /pglog/pg-replica-log /pgdata/pg-replica/pg_log
+            
+            # pgwal
+            mv /pgdata/pg-replica/pg_wal /pgwal/pg-replica-wal
+            ln -sf /pgwal/pg-replica-wal /pgdata/pg-replica/pg_wal
+
+    
 
 [web-console]: https://cluster.example.com:8443  "Origin Web Console"

@@ -1,0 +1,67 @@
+apiVersion: v1
+kind: Template
+metadata:
+  creationTimestamp: null
+  name: pg-backrest-restore
+objects:
+- apiVersion: batch/v1
+  kind: Job
+  metadata:
+    name: pg-backrest-restore
+  spec:
+    template:
+      labels:
+        app: pg-backrest-restore
+      spec:
+        nodeSelector:
+          kubernetes.io/hostname: ${PG_NODE}
+        containers:
+        - env:
+          - name: STANZA
+            value: db
+          image: ${CCP_IMAGE_PREFIX}/crunchy-backrest-restore:${CCP_IMAGE_TAG}
+          name: pg-backrest-restore
+          volumeMounts:
+          - mountPath: /pgdata
+            name: pgdata
+            readOnly: false
+          - mountPath: /backrestrepo
+            name: backrestrepo
+            readOnly: false
+          - mountPath: /pgconf
+            name: pgconf
+            readOnly: true
+        restartPolicy: Never
+        securityContext:
+          supplementalGroups:
+          - 65534
+        volumes:
+        - name: pgdata
+          persistentVolumeClaim:
+            claimName: ${NAMESPACE}-${PG_MODE}-data-pvc
+        - name: backrestrepo
+          persistentVolumeClaim:
+            claimName: ${NAMESPACE}-${PG_MODE}-backrestrepo-pvc
+        - name: pgconf
+          configMap:
+            name: pgconf
+            items:
+            - key: pgbackrest
+              path: pgbackrest.conf
+parameters:
+- description: project namespace
+  name: NAMESPACE
+  value: changeit
+- description: The image prefix to use
+  name: CCP_IMAGE_PREFIX
+  value: crunchydata
+- description: The image tag to use
+  name: CCP_IMAGE_TAG
+  value: centos7-10.2-1.8.0
+- description: The kubernetes node label where the primary database container should run.
+  name: PG_NODE
+  value: ocp-node-01.example.com
+- description: Mode of postgres (replica or primary)
+  name: PG_MODE
+  value: primary
+
