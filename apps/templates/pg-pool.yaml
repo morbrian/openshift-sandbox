@@ -42,7 +42,7 @@ objects:
       metadata:
         creationTimestamp: null
         labels:
-          name: ${PG_PRIMARY_SERVICE_NAME}
+          name: ${PG_PGPOOL_SERVICE_NAME}
           replicatype: trigger
       spec:
         containers:
@@ -62,6 +62,10 @@ objects:
                 key: pg-password
                 name: pg-secret
           image: ${CCP_IMAGE_PREFIX}/crunchy-pgpool:${CCP_IMAGE_TAG}
+          name: pgpool
+          ports:
+          - containerPort: 5432
+            protocol: TCP
           securityContext:
             privileged: false
           terminationMessagePath: /dev/termination-log
@@ -75,16 +79,14 @@ objects:
         volumes:
         - name: pgconf
           configMap:
-            name: pgconf
+            name: pgpoolconf
             items:
-            - key: pgconf
-              path: postgresql.conf
-            - key: pghba
-              path: pg_hba.conf
-            - key: setup
-              path: setup.sql
-            - key: pgbackrest
-              path: pgbackrest.conf
+            - key: pgpool
+              path: pgpool.conf
+            - key: poolhba
+              path: pool_hba.conf
+            - key: poolpasswd
+              path: pool_passwd
 parameters:
 - description: project namespace
   name: NAMESPACE
@@ -95,29 +97,9 @@ parameters:
 - description: The image tag to use
   name: CCP_IMAGE_TAG
   value: centos7-10.2-1.8.0
+- name: PG_PGPOOL_SERVICE_NAME
+  value: pg-pool
 - name: PG_PRIMARY_SERVICE_NAME
   value: pg-primary
 - name: PG_REPLICA_SERVICE_NAME
   value: pg-primary
-
-
-
-
-- description: PostgreSQL application username
-  value: sandbox
-  name: PG_USER
-- description: PostgreSQL application password
-  from: '[a-zA-Z0-9]{12}'
-  generate: expression
-  name: PG_PASSWORD
-- description: PostgreSQL root password
-  from: '[a-zA-Z0-9]{12}'
-  generate: expression
-  name: PG_ROOT_PASSWORD
-- description: PostgreSQL master user (often master)
-  value: master
-  name: PG_PRIMARY_USER
-- description: PostgreSQL master password
-  from: '[a-zA-Z0-9]{12}'
-  generate: expression
-  name: PG_PRIMARY_PASSWORD
