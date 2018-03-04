@@ -158,6 +158,8 @@ objects:
             value: ${PG_RESTORE_PATH}
           - name: XLOGDIR
             value: 'true'
+          - name: ENABLE_SSHD
+            value: 'true'
           image: ${CCP_IMAGE_PREFIX}/crunchy-postgres:${CCP_IMAGE_TAG}
           livenessProbe:
             exec:
@@ -197,6 +199,9 @@ objects:
             readOnly: false
           - mountPath: /pgconf
             name: pgconf
+            readOnly: true
+          - mountPath: /sshd
+            name: sshd
             readOnly: true
         - env:
           - name: PG_PORT
@@ -262,6 +267,20 @@ objects:
               path: setup.sql
             - key: pgbackrest
               path: pgbackrest.conf
+            - key: sshdconf
+              path: sshd_config
+            - key: sshauth
+              path: authorized_keys
+        - name: sshd
+          secret:
+            secretName: sshd-secrets
+            items:
+            - key: ssh-host-rsa
+              path: ssh_host_rsa_key
+            - key: ssh-host-ecdsa
+              path: ssh_host_ecdsa_key
+            - key: ssh-host-ed25519
+              path: ssh_host_ed25519_key
 parameters:
 - description: project namespace
   name: NAMESPACE
