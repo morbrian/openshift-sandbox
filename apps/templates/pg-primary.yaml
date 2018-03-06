@@ -203,6 +203,13 @@ objects:
             value: "5432"
           - name: PROM_GATEWAY
             value: http://${CRUNCHY_METRICS_SERVICE_NAME}:9091
+          - name: NODE_EXPORTER_URL
+            value: 'http://localhost:9100/metrics'
+          - name: POSTGRES_EXPORTER_URL
+            value: 'http://localhost:9187/metrics'
+          - name: DATA_SOURCE_NAME
+            value: >-
+              postgresql://PRIMARY_USER:PRIMARY_PASSWORD@${PG_PRIMARY_SERVICE_NAME}:5432/postgres?sslmode=disable
           - name: PG_ROOT_PASSWORD
             valueFrom:
               secretKeyRef:
