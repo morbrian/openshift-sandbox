@@ -11,5 +11,8 @@ oc create -n openshift -f ${WORKSPACE}/templates/pg-pool.yaml
 oc create -n openshift -f ${WORKSPACE}/templates/pg-backrest-restore.yaml
 oc create -n openshift -f ${WORKSPACE}/templates/pg-backrest-interactive.yaml
 
+oc create -n openshift -f ${WORKSPACE}/templates/crunchy-metrics.yaml
+oc create -n openshift -f ${WORKSPACE}/templates/crunchy-metrics-vols.yaml
+
 # if template needs to be reloaded, it can be force replaced:
 # oc replace --force -n openshift -f templates/filename.yaml

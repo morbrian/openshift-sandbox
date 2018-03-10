@@ -1,0 +1,37 @@
+apiVersion: v1
+kind: Template
+metadata:
+  annotations:
+    description: Persistent volumes needed for PostgreSQL defined as sandbox example.
+    iconClass: icon-database
+    tags: database,postgresql,crunchy,metrics
+  creationTimestamp: null
+  name: crunchy-metrics-vols
+objects:
+- apiVersion: v1
+  kind: PersistentVolume
+  metadata:
+    labels:
+      postgres: ${NAMESPACE}-crunchy-metrics
+    name: ${NAMESPACE}-crunchy-metrics-pv
+  spec:
+    claimRef:
+      name: ${NAMESPACE}-crunchy-metrics-pvc
+      namespace: ${NAMESPACE}
+    accessModes:
+    - ReadWriteOnce
+    capacity:
+      storage: ${CRUNCHY_METRICS_STORAGE_SIZE}
+    hostPath:
+      path: ${CRUNCHY_METRICS_PV_PATH}
+    persistentVolumeReclaimPolicy: Retain
+parameters:
+- name: NAMESPACE
+  value: project
+- description: Host path of backrest repo.
+  name: CRUNCHY_METRICS_PV_PATH
+  value: /var/appdata/namespace/metrics
+- description: Requested size of backrest volume
+  name: CRUNCHY_METRICS_STORAGE_SIZE
+  value: 2Gi
+

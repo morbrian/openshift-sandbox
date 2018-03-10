@@ -202,7 +202,14 @@ objects:
           - name: PG_PORT
             value: "5432"
           - name: PROM_GATEWAY
-            value: http://crunchy-metrics:9091
+            value: http://${CRUNCHY_METRICS_SERVICE_NAME}:9091
+          - name: NODE_EXPORTER_URL
+            value: 'http://localhost:9100/metrics'
+          - name: POSTGRES_EXPORTER_URL
+            value: 'http://localhost:9187/metrics'
+          - name: DATA_SOURCE_NAME
+            value: >-
+              postgresql://PRIMARY_USER:PRIMARY_PASSWORD@${PG_PRIMARY_SERVICE_NAME}:5432/postgres?sslmode=disable
           - name: PG_ROOT_PASSWORD
             valueFrom:
               secretKeyRef:
@@ -278,6 +285,9 @@ parameters:
   value: pg-primary
 - name: PG_PRIMARY_SERVICE_NAME
   value: pg-primary
+- description: crunchy metrics service
+  name: CRUNCHY_METRICS_SERVICE_NAME
+  value: crunchy-metrics
 - description: Requested size of data volume
   name: PG_DATA_STORAGE_SIZE
   value: 5Gi
