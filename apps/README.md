@@ -1,5 +1,7 @@
 # Application Sandbox
 
+[web-console]: https://cluster.example.com:8443  "Origin Web Console"
+
 This document describes how to create some useful sandbox application in OpenShift.
 
 
@@ -28,7 +30,7 @@ on the nodes, so we'll go ahead and just use that space to get started.
 2. Prepare folders for the PostgreSQL examples (still **ocp-node-01**):
 
         # make the directory tree to house data the primary and replica containers
-        sudo mkdir -p /var/appdata/sandbox/{primary,replica}/{data,wal,log,backup,backrestrepo}
+        sudo mkdir -p /var/appdata/sandbox/{primary,replica}/{data,wal,log,backup,backrestrepo,metrics}
 
 3. Change permissions so the container will have sufficient access to the data folders.
 
@@ -39,7 +41,7 @@ on the nodes, so we'll go ahead and just use that space to get started.
         sudo chmod -R 770 /var/appdata
         
         # assign SELinux attribute to give processes in a container access to these folders
-        sudo chcon -Rt svirt_sandbox_file_t /var/appdata/sandbox/{primary,replica}/{data,wal,log,backup,backrestrepo}
+        sudo chcon -Rt svirt_sandbox_file_t /var/appdata/sandbox/{primary,replica}/{data,wal,log,backup,backrestrepo,metrics}
 
 
 ## Load Sandbox Templates
@@ -127,6 +129,8 @@ The user adding templates must have privileges to add items to the `openshift` n
 
 6. Using the web-console, open a terminal into the pg-primary pod just created.
 
+    TODO: later realized this can be avoid by just setting the pg_log path in postgresql.conf instead
+
     1. Move the existing pg_log directory to a new folder under /pglog, called pg-primary-log
 
             mv /pgdata/pg-primary/pg_log /pglog/pg-primary-log
@@ -171,7 +175,7 @@ The user adding templates must have privileges to add items to the `openshift` n
             ls -alh /pgwal/pg-replica-wal
 
  
- ## Verify PostgreSQL Replication
+ ### Verify PostgreSQL Replication
  
  1. Use `oc rsh` to connect to database with psql and create sample table.
  
@@ -191,7 +195,7 @@ The user adding templates must have privileges to add items to the `openshift` n
             psql -Usandbox -dsandbox -c "select * from sample"
 
 
-## Verify PostgreSQL pg-backrest integrity
+### Verify PostgreSQL pg-backrest integrity
 
 As we have a replica, it would be best to perform the backup from there to save cpu and io on the master.
 
@@ -245,7 +249,7 @@ The instructions below demonstrate using the primary. -- we'll update later with
     
             psql -Usandbox -dsandbox -c "select * from sample"
             
-        Expect data to be in same state we left it in before deleting the files.
+       Expect data to be in same state we left it in before deleting the files.
 
     4. Repair primary configuration of `pgwal` and `pglog`.
     
@@ -278,5 +282,56 @@ The instructions below demonstrate using the primary. -- we'll update later with
             ln -sf /pgwal/pg-replica-wal /pgdata/pg-replica/pg_wal
 
     
+## Crunchy Metrics for PostgreSQL
 
-[web-console]: https://cluster.example.com:8443  "Origin Web Console"
+[crunchy-metrics]: https://github.com/CrunchyData/crunchy-containers/blob/master/docs/metrics.adoc
+
+CrunchyData Metrics provides a configuration of Prometheus and Grafana to support monitoring
+the performance of a PostgreSQL cluster. See [crunchy-metrics] for additional details.
+
+1. A subfolder for metrics data was created during *Simple Volume Provisioning* at 
+`/var/appdata/sandbox/primary/metrics`, and the crunchy-metrics *PersistentVolume* template called was imported when we
+ran  `init-pg-templates.sh`. The next steps assume we are starting with those steps already done,
+along with the sandbox project and PostgreSQL already prepared.
+
+2. Create storage volumes for primary database: In web-console, add to project, browse catalog for 'crunchy-metrics-vols'
+   
+       *This step requires a user with cluster-admin privileges.*
+   
+       * NAMESPACE: change to name of project
+       * XXX_PV_PATH
+           * assumes node-locked postgres pod
+           * assumes the path exists on node
+           * Convention: /appdata/<namespace>/<mode>/purpose
+           * Example: /var/appdata/sandbox/primary/metrics
+       * XXX_SIZE
+           * assumes appropriately sized physical volumes
+           * remember these numbers, used again when creating primary instance.
+
+3. Create PostgreSQL Primary instance: In web-console, add to project, browse catalog for 'crunchy-metrics'
+   
+       * NAMESPACE: change to project name
+       * PG_NODE: review node, make sure this is where the physical volumes are located.
+       * XXX_SIZE: review sizes, this should be equal to or less than the configured volume sizes.
+
+4. Validation Steps
+
+    1. Currently need to create routes to grafana and prometheus services
+        
+        crunchy-prometheus: 9090
+        
+        crunchy-grafana: 3000
+  
+    2. Earlier steps glossed over the metrics related environment variables when configuring the
+    `crunchy-collect` container in the pg-primary setup. These need to be reviewed and updated at this point.
+    
+        * PROM_GATEWAY
+        
+        * NODE_EXPORTER_URL
+        
+        * POSTGRES_EXPORTER_URL
+        
+        * DATA_SOURCE_NAME
+  
+    3. Connect to grafana and configure data source, and load crunchy dashboard,
+    see [crunchy-metrics] for how to do this.

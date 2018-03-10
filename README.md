@@ -1,5 +1,8 @@
 # Packer build for small OpenShift cluster on CentOS7
 
+[web-console]: https://cluster.example.com:8443  "Origin Web Console"
+
+
 1. Build the baseline VM template from CentOS 7.4 iso:
 
         packer build centos7-vbox-iso.json
@@ -167,11 +170,12 @@ Edit this file, specifying the IP DNS should listen on.
 
 
 TODO: probably better to specify the interface... but working on issues.
+
 TODO: if using the interface, consider also specifying this setting with the NIC identifier no-dhcp-interface=<ifcx>
+
 TODO: I generally can't get dnsmasq to start correctly because the interface is not ready yet.
 
 
 
 
 
-[web-console]: https://cluster.example.com:8443  "Origin Web Console"
