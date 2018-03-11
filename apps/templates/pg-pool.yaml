@@ -96,10 +96,10 @@ parameters:
   value: crunchydata
 - description: The image tag to use
   name: CCP_IMAGE_TAG
-  value: centos7-10.2-1.8.0
+  value: centos7-10.3-1.8.1
 - name: PG_PGPOOL_SERVICE_NAME
   value: pg-pool
 - name: PG_PRIMARY_SERVICE_NAME
   value: pg-primary
 - name: PG_REPLICA_SERVICE_NAME
-  value: pg-primary
+  value: pg-replica
