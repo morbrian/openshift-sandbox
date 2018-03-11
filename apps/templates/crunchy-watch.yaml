@@ -1,0 +1,83 @@
+apiVersion: v1
+kind: Template
+metadata:
+  annotations:
+    description: Crunchy Watch for PostgreSQL
+    iconClass: icon-database
+    tags: database,postgresql,replication,watch,failover
+  creationTimestamp: null
+  name: crunchy-watch
+objects:
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    creationTimestamp: null
+    name: crunchy-watch
+  spec:
+    replicas: 1
+    selector:
+      name: crunchy-watch
+    strategy:
+      activeDeadlineSeconds: 864001
+      recreateParams:
+        timeoutSeconds: 864000
+      resources: {}
+      type: Recreate
+    template:
+      metadata:
+        labels:
+          name: crunchy-watch
+        name: crunchy-watch
+      spec:
+        containers:
+        - env:
+          - name: CRUNCHY_WATCH_OPENSHIFT_PROJECT
+            value: ${NAMESPACE}
+          - name: CRUNCHY_WATCH_PLATFORM
+            value: openshift
+          - name: SLEEP_TIME
+            value: "5"
+          - name: MAX_FAILURES
+            value: "1"
+          - name: CRUNCHY_WATCH_PRIMARY
+            value: ${CRUNCHY_WATCH_PRIMARY}
+          - name: CRUNCHY_WATCH_REPLICA
+            value: ${CRUNCHY_WATCH_REPLICA}
+          - name: CRUNCHY_WATCH_PRIMARY_PORT
+            value: "5432"
+          - name: CRUNCHY_WATCH_REPLICA_PORT
+            value: "5432"
+          - name: CRUNCHY_WATCH_USERNAME
+            valueFrom:
+              secretKeyRef:
+                key: pg-primary-username
+                name: pg-secret
+          - name: CRUNCHY_WATCH_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                key: pg-primary-password
+                name: pg-secret
+          - name: CRUNCHY_WATCH_DATABASE
+            value: ${CRUNCHY_WATCH_DATABASE}
+          image: ${CCP_IMAGE_PREFIX}/crunchy-watch:${CCP_IMAGE_TAG}
+          name: crunchy-watch
+        serviceAccount: crunchy-watch
+parameters:
+- description: project namespace
+  name: NAMESPACE
+  value: changeit
+- description: The image prefix to use
+  name: CCP_IMAGE_PREFIX
+  value: crunchydata
+- description: The image tag to use
+  name: CCP_IMAGE_TAG
+  value: centos7-10.3-1.8.1
+- description: The name of the database that will be created
+  name: CRUNCHY_WATCH_DATABASE
+  value: sandbox
+- name: CRUNCHY_WATCH_PRIMARY
+  value: pg-primary
+- name: CRUNCHY_WATCH_REPLICA
+  value: pg-replica
+
+
