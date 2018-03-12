@@ -115,7 +115,7 @@ parameters:
   value: crunchydata
 - description: The image tag to use
   name: CCP_IMAGE_TAG
-  value: centos7-10.2-1.8.0
+  value: centos7-10.3-1.8.1
 - description: The kubernetes node label where the primary database container should run.
   name: PG_NODE
   value: ocp-node-01.example.com

@@ -238,7 +238,7 @@ parameters:
   value: crunchydata
 - description: The image tag to use
   name: CCP_IMAGE_TAG
-  value: centos7-10.2-1.8.0
+  value: centos7-10.3-1.8.1
 - description: The name of the database that will be created
   name: PG_DATABASE
   value: sandbox
