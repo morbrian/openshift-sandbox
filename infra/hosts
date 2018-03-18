@@ -38,17 +38,21 @@ openshift_registry_selector="region=infra"
 # TODO: can we provision volume with ansible?
 #
 #openshift_hosted_metrics_deploy=true
-##openshift_metrics_install_metrics=True
-#openshift_hosted_metrics_deployer_prefix=registry.access.redhat.com/openshift3/
-##openshift_hosted_metrics_deployer_version=v3.6.0
+#openshift_metrics_install_metrics=True
+#openshift_hosted_metrics_deployer_prefix=openshift/origin-
+###openshift_metrics_image_version=v1.3
+###openshift_hosted_metrics_deployer_version=v3.6.0
 #openshift_metrics_hawkular_hostname=hawkular-metrics.cluster.lionel.io
-#openshift_metrics_cassandra_storage_type=pv
-#openshift_metrics_cassandra_pvc_size=50G
 #openshift_metrics_duration=30
 #openshift_metrics_resolution=30s
 #openshift_metrics_cassandra_nodeselector={"region":"infra"}
 #openshift_metrics_hawkular_nodeselector={"region":"infra"}
 #openshift_metrics_heapster_nodeselector={"region":"infra"}
+### storage will use {emptyDir} by default and not be persistent
+### currently it's easier to let it install with the ephemeral emptyDir
+### and then add peristent volume afterward
+#openshift_metrics_cassandra_storage_type=pv
+#openshift_metrics_cassandra_pvc_size=10G
 
 #
 # logging
@@ -58,23 +62,25 @@ openshift_registry_selector="region=infra"
 # TODO: can we provision volumes with ansible?
 #
 #openshift_hosted_logging_deploy=true
-#openshift_hosted_logging_deployer_prefix=registry.access.redhat.com/openshift3/
-##openshift_hosted_logging_deployer_version=v3.6.0
-##openshift_hosted_logging_storage_kind=
+#openshift_hosted_logging_deployer_prefix=openshift/origin-
+###openshift_hosted_logging_deployer_version=v3.6.0
+###openshift_hosted_logging_storage_kind=
 #openshift_hosted_logging_hostname=kibana-logging.cluster.lionel.io
 #openshift_logging_use_ops=true
 #openshift_logging_namespace=logging
 #openshift_logging_es_cluster_size=1
 #openshift_logging_es_nodeselector={"region":"infra"}
-#openshift_logging_es_pv_selector={"logging":"logging-es"}
-#openshift_logging_es_pvc_size=25Gi
 #openshift_logging_kibana_nodeselector={"region":"infra"}
 #openshift_logging_curator_nodeselector={"region":"infra"}
 #openshift_logging_es_ops_nodeselector={"region":"infra"}
-#openshift_logging_es_ops_pv_selector={"logging":"logging-es-ops"}
-#openshift_logging_es_ops_pvc_size=25Gi
 #openshift_logging_kibana_ops_nodeselector={"region":"infra"}
 #openshift_logging_curator_ops_nodeselector={"region":"infra"}
+### the persistent volume must be set up separately with the labels indicated
+#openshift_logging_es_pv_selector={"logging":"logging-es"}
+#openshift_logging_es_pvc_size=10Gi
+#openshift_logging_es_ops_pv_selector={"logging":"logging-es-ops"}
+#openshift_logging_es_ops_pvc_size=10Gi
+
 
 [nodes]
 ocp-infra-01.lionel.io  openshift_public_ip=172.16.22.201 openshift_ip=172.16.22.201 openshift_public_hostname=ocp-infra-01.lionel.io openshift_hostname=ocp-infra-01.lionel.io containerized=True openshift_node_labels="{'region': 'infra'}" openshift_schedulable=True ansible_become=yes

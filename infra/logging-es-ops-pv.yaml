@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: logging-es-ops-pv
+  labels:
+    logging: logging-es-ops 
+spec:
+  accessModes:
+  - ReadWriteOnce
+  capacity:
+    storage: 10Gi
+  hostPath:
+    path: /ocp/logging-ops
+  persistentVolumeReclaimPolicy: Retain
