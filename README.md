@@ -35,6 +35,14 @@ described here is designed to provide a bit more hands on experience with cluste
             -var "domain=${MCM_OCP_DOMAIN}" \
             -var "dnsip=${MCM_OCP_DNSIP}" \
             centos7-vbox-ovf.json
+        
+        # optionally build gitlab VM
+        packer build -parallel=false -force \
+            -var "root_new_pass=${MCM_SSH_PASS}" \
+            -var "ocp_pass=${MCM_OCP_PASS}" \
+            -var "domain=${MCM_OCP_DOMAIN}" \
+            -var "dnsip=${MCM_OCP_DNSIP}" \
+            centos7-gitlab-vbox-ovf.json
 
 4. Import all of the VMs just created:
 

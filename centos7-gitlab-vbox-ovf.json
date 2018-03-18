@@ -1,0 +1,53 @@
+{
+  "variables": {
+    "ssh_name": "root",
+    "ssh_pass": "s0m3password",
+    "root_new_pass": "s0m3password",
+    "ocp_pass": "s0m3password",
+    "ocp_user": "ocp_admin",
+    "domain": "nip.io",
+    "dnsip": "192.168.1.1",
+    "gitlab_hostname": "gitlab",
+    "gitlab_mac": "008027b08b04",
+    "all_script": "prov/all.sh",
+    "gitlab_script": "prov/gitlab.sh"
+  },
+  "builders": [
+    {
+      "name": "{{user `gitlab_hostname`}}",
+      "headless": true,
+      "type": "virtualbox-ovf",
+      "source_path": "output/vbox/openshift-baseline/openshift-baseline.ovf",
+      "output_directory": "output/vbox/{{user `gitlab_hostname`}}",
+      "vm_name": "{{user `gitlab_hostname`}}",
+      "ssh_username": "{{user `ssh_name`}}",
+      "ssh_password": "{{user `ssh_pass`}}",
+      "vboxmanage": [
+        [ "modifyvm", "{{.Name}}", "--macaddress1", "{{user `gitlab_mac`}}" ]
+      ],
+      "shutdown_command": "echo '{{user `root_new_pass`}}' | sudo -S shutdown -P now"
+    }
+  ],
+  "provisioners": [
+    {
+      "type": "shell",
+      "environment_vars": [
+        "DOMAIN={{user `domain`}}",
+        "DNSIP={{user `dnsip`}}",
+        "ROOT_NEW_PASS={{user `root_new_pass`}}",
+        "OCP_PASS={{user `ocp_pass`}}",
+        "OCP_USER={{user `ocp_user`}}"
+      ],
+      "script": "{{user `all_script`}}"
+    },
+    {
+      "type": "shell",
+      "only": ["{{user `gitlab_hostname`}}"],
+      "environment_vars": [
+        "OCP_USER={{user `ocp_user`}}",
+        "GITLAB_HOST={{user `gitlab_hostname`}}.{{user `domain`}}"
+      ],
+      "script": "{{user `gitlab_script`}}"
+    }
+  ]
+}
