@@ -1,0 +1,150 @@
+apiVersion: v1
+kind: Template
+metadata:
+  creationTimestamp: null
+  name: fluentd-interactive
+  annotations:
+    description: fluentd testing sandbox.
+    tags: fluentd
+objects:
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    name: fluentd-interactive
+  spec:
+    nodeSelector:
+      kubernetes.io/hostname: ${TD_NODE}
+    containers:
+    - env:
+        - name: K8S_HOST_URL
+          value: 'https://kubernetes.default.svc.cluster.local'
+        - name: ES_HOST
+          value: logging-es
+        - name: ES_PORT
+          value: '9200'
+        - name: ES_CLIENT_CERT
+          value: /etc/fluent/keys/cert
+        - name: ES_CLIENT_KEY
+          value: /etc/fluent/keys/key
+        - name: ES_CA
+          value: /etc/fluent/keys/ca
+        - name: OPS_HOST
+          value: logging-es-ops
+        - name: OPS_PORT
+          value: '9200'
+        - name: OPS_CLIENT_CERT
+          value: /etc/fluent/keys/cert
+        - name: OPS_CLIENT_KEY
+          value: /etc/fluent/keys/key
+        - name: OPS_CA
+          value: /etc/fluent/keys/ca
+        - name: JOURNAL_SOURCE
+        - name: JOURNAL_READ_FROM_HEAD
+        - name: BUFFER_QUEUE_LIMIT
+          value: '32'
+        - name: BUFFER_SIZE_LIMIT
+          value: 8m
+        - name: FLUENTD_CPU_LIMIT
+          valueFrom:
+            resourceFieldRef:
+              containerName: fluentd-interactive
+              divisor: '0'
+              resource: limits.cpu
+        - name: FLUENTD_MEMORY_LIMIT
+          valueFrom:
+            resourceFieldRef:
+              containerName: fluentd-interactive
+              divisor: '0'
+              resource: limits.memory
+        - name: FILE_BUFFER_LIMIT
+          value: 256Mi
+      name: fluentd-interactive
+      image: openshift/origin-logging-fluentd:latest
+      command: ["/bin/bash"]
+      args: ["-c", "fluent-gem install serverengine --version 1.6.4; fluent-gem install fluent-plugin-grok-parser --version 0.3.1; while true; do echo heartbeat; sleep 30;done"]
+      resources:
+        limits:
+          memory: 512Mi
+        requests:
+          cpu: 100m
+          memory: 512Mi
+      securityContext:
+        privileged: true
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+        - mountPath: /run/log/journal
+          name: runlogjournal
+        - mountPath: /var/log
+          name: varlog
+        - mountPath: /var/lib/docker/containers
+          name: varlibdockercontainers
+          readOnly: true
+        - mountPath: /etc/fluent/interactive
+          name: config
+          readOnly: true
+        - mountPath: /etc/fluent/keys
+          name: certs
+          readOnly: true
+        - mountPath: /etc/docker-hostname
+          name: dockerhostname
+          readOnly: true
+        - mountPath: /etc/localtime
+          name: localtime
+          readOnly: true
+        - mountPath: /etc/sysconfig/docker
+          name: dockercfg
+          readOnly: true
+        - mountPath: /etc/docker
+          name: dockerdaemoncfg
+          readOnly: true
+        - mountPath: /var/lib/fluentd
+          name: filebufferstorage
+    restartPolicy: Never
+    securityContext:
+      supplementalGroups:
+      - 65534
+    serviceAccount: aggregated-logging-fluentd
+    serviceAccountName: aggregated-logging-fluentd
+    volumes:
+      - hostPath:
+          path: /run/log/journal
+        name: runlogjournal
+      - hostPath:
+          path: /var/log
+        name: varlog
+      - hostPath:
+          path: /var/lib/docker/containers
+        name: varlibdockercontainers
+      - configMap:
+          defaultMode: 420
+          name: logging-fluentd
+        name: config
+      - name: certs
+        secret:
+          defaultMode: 420
+          secretName: logging-fluentd
+      - hostPath:
+          path: /etc/hostname
+        name: dockerhostname
+      - hostPath:
+          path: /etc/localtime
+        name: localtime
+      - hostPath:
+          path: /etc/sysconfig/docker
+        name: dockercfg
+      - hostPath:
+          path: /etc/docker
+        name: dockerdaemoncfg
+      - hostPath:
+          path: /var/lib/fluentd
+        name: filebufferstorage
+parameters:
+- description: project namespace
+  name: NAMESPACE
+  value: changeit
+- description: The kubernetes node label where the primary database container should run.
+  name: TD_NODE
+  value: ocp-node-02.example.com
+
+
