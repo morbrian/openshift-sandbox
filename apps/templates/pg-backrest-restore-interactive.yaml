@@ -14,6 +14,7 @@ objects:
   spec:
     nodeSelector:
       kubernetes.io/hostname: ${PG_NODE}
+    serviceAccountName: backrest-restore
     containers:
     - name: pg-backrest-restore-interactive
       image: ${CCP_IMAGE_PREFIX}/crunchy-backrest-restore:${CCP_IMAGE_TAG}
@@ -29,10 +30,10 @@ objects:
       - mountPath: /pgconf
         name: pgconf
         readOnly: true
+      securityContext:
+        runAsUser: 0
+        privileged: true
     restartPolicy: Never
-    securityContext:
-      supplementalGroups:
-      - 65534
     volumes:
     - name: pgdata
       persistentVolumeClaim:
@@ -55,7 +56,7 @@ parameters:
   value: crunchydata
 - description: The image tag to use
   name: CCP_IMAGE_TAG
-  value: centos7-10.2-1.8.0
+  value: centos7-10.3-1.8.1
 - description: The kubernetes node label where the primary database container should run.
   name: PG_NODE
   value: ocp-node-01.example.com

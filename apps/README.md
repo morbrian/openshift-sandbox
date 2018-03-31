@@ -223,7 +223,7 @@ The instructions below demonstrate using the primary. -- we'll update later with
         
         # verify changes
         psql -Usandbox -dsandbox -c "select * from sample"
-
+        
 4. Scale down primary and replica using [web-console]
 
     Commandline Alternative:
@@ -280,7 +280,95 @@ The instructions below demonstrate using the primary. -- we'll update later with
             # pgwal
             mv /pgdata/pg-replica/pg_wal /pgwal/pg-replica-wal
             ln -sf /pgwal/pg-replica-wal /pgdata/pg-replica/pg_wal
+            
+## Additional Restore Scenarios
 
+The default run command in the crunchdata pgbackrest-restore container is a bit limited and hard
+to configure through the provided environment variables.
+
+Using the provided container but giving arbitrary commandline access make the restore process
+much more flexible and provides more insight into the process.
+
+This repository provides `pg-backrest-restore-interactive.yaml` to help with other kinds of
+pgbackrest retores. The container runs in privileged mode, and requires the restore to be
+run as root in order to modify file permissions appropriately.
+
+1. Prepare the *Security Context Constraints* so that the container can run.
+
+Change the `sandbox` namespace to the actual namespace where pg-primary is running,
+or at least change it to the project where the backrest-restore will be run from.
+
+``` 
+oc create serviceaccount backrest-restore -n sandbox
+oc adm policy add-scc-to-user privileged -n sandbox -z backrest-restore
+```
+
+2. Create an instance of the `pg-backrest-restore-interactive` template in the target project.
+
+It's worth making sure the backrest version matches the crunchy container version in CCP_IMAGE_TAG.
+
+``` 
+oc new-app pg-backrest-restore-interactive -p NAMESPACE=pg-primary -p PG_NODE=ocp-node-01.example.com -p CCP_IMAGE_TAG=centos7-10.3-1.8.1
+```
+
+3. Connect to the now running interactive container.
+
+``` 
+oc rsh pg-backrest-restore-interactive
+```
+
+4. Run an appropriate backup.
+
+If doing PITR testing, it would be useful to run this command to get the exact date just before
+corrupting the database to make the restore target easier. Otherwise, in a real world scenario
+this date string shows the right format, but some guesswork is needed to pick the right time
+before the corruption incident occured.
+
+``` 
+select current_timestamp;
+```
+
+Example PITR restore command (use this if you know an approximate target time when the state was good)
+
+``` 
+pgbackrest --config=/pgconf/pgbackrest.conf --stanza=db --log-level-console=info --delta --type=time "--target=2018-03-31 20:47:21.376193+00" restore
+```
+
+Example FULL restore command (use this if the entire database partition was lost, requires directory to be empty):
+
+``` 
+pgbackrest --config=/pgconf/pgbackrest.conf --stanza=db --log-level-console=info restore
+```    
+
+Example DELTA restore command (use this to save time when most of the database is ok by some files are corrupt)
+
+``` 
+pgbackrest --config=/pgconf/pgbackrest.conf --stanza=db --log-level-console=info --delta restore
+```    
+
+5. Fix file permissions
+
+Everything will be owned by user `26`, but change to the correct ID of the project running postgres.
+
+``` 
+chown -R 1000100000:root /pgdata/pg-primary/*
+```    
+    
+6. Delete pg-backrest-restore-interactive pod.
+
+7. Scale up PostgreSQL deployment.
+
+After start up, the PITR option will have paused wal replay and the following will likely be required.
+
+``` 
+select pg_wal_replay_resume();
+```
+
+8. Assuming the data looks ok, run a backup now to ensure the next restore will target this point.
+
+``` 
+pgbackrest --stanza=db --log-level-console=info backup
+```
     
 ## Crunchy Metrics for PostgreSQL
 
