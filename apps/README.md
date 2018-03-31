@@ -335,3 +335,40 @@ along with the sandbox project and PostgreSQL already prepared.
   
     3. Connect to grafana and configure data source, and load crunchy dashboard,
     see [crunchy-metrics] for how to do this.
+
+
+## Sonarqube
+
+1. Create template instances in project **devops**
+
+``` 
+oc create -n openshift templates/sonarqube-secrets.yaml
+oc create -n openshift templates/sonarqube.yaml
+```
+
+2. Create instance of secrets template in gui, view password after creation.
+
+3. Use generated password and `sonar` username to create database and role.
+
+We created a general purpose shared `sandbox` PostgreSQL cluster for this purpose.
+
+```
+CREATE ROLE sonar WITH PASSWORD 'changeit';
+ALTER ROLE "sonar" WITH NOSUPERUSER INHERIT NOCREATEROLE NOCREATEDB LOGIN NOREPLICATION 
+    NOBYPASSRLS CONNECTION LIMIT 50;
+CREATE DATABASE sonar WITH OWNER = sonar ENCODING = 'UTF8' TABLESPACE = pg_default 
+    LC_COLLATE = 'en_US.UTF-8' LC_CTYPE = 'en_US.UTF-8' CONNECTION LIMIT = -1 TEMPLATE template0;
+```
+ 
+4. Give sonarqube appropriate privileges... 
+
+``` 
+oc create serviceaccount sonarqube -n devops
+oc adm policy add-scc-to-user privileged -n devops -z sonarqube
+```
+  
+5. Create instance of Sonarqube in `devops` from template.
+
+Use JDBC URL = jdbc:postgresql://pg-primary.sandbox/sonar
+
+6. Initial default login is admin / admin

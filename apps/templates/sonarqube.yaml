@@ -1,0 +1,84 @@
+apiVersion: v1
+kind: Template
+metadata:
+  annotations:
+    description: Sonarqube
+    iconClass: bug
+    tags: devops, code
+  name: sonarqube
+objects:
+- apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      name: ${SONRAQUBE_SERVICE_NAME}
+    name: ${SONRAQUBE_SERVICE_NAME}
+  spec:
+    ports:
+    - nodePort: 0
+      port: 9000
+      protocol: TCP
+      targetPort: 9000
+    selector:
+      name: ${SONRAQUBE_SERVICE_NAME}
+- apiVersion: v1
+  kind: Route
+  metadata:
+    name: sonarqube
+  spec:
+    tls:
+      termination: edge
+    to:
+      kind: Service
+      name: ${SONRAQUBE_SERVICE_NAME}
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    creationTimestamp: null
+    name: ${SONRAQUBE_SERVICE_NAME}
+  spec:
+    replicas: 1
+    selector:
+      name: ${SONRAQUBE_SERVICE_NAME}
+    strategy:
+      activeDeadlineSeconds: 86401
+      recreateParams:
+        timeoutSeconds: 86400
+      type: Rolling
+    template:
+      metadata:
+        creationTimestamp: null
+        labels:
+          name: ${SONRAQUBE_SERVICE_NAME}
+          replicatype: trigger
+      spec:
+        containers:
+        - env:
+          - name: SONARQUBE_JDBC_URL
+            value: ${SONARQUBE_JDBC_URL}
+          - name: SONRAQUBE_SERVICE_NAME
+            valueFrom:
+              secretKeyRef:
+                key: db-username
+                name: sonarqube-secret
+          - name: SONARQUBE_JDBC_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                key: db-password
+                name: sonarqube-secret
+          image: sonarqube:${SONARQUBE_IMAGE_TAG}
+          name: sonarqube
+          ports:
+          - containerPort: 9000
+            protocol: TCP
+          securityContext:
+            privileged: true
+        serviceAccountName: sonarqube
+parameters:
+- description: The image tag to use
+  name: SONARQUBE_IMAGE_TAG
+  value: '7.0'
+- name: SONRAQUBE_SERVICE_NAME
+  value: sonarqube
+- name: SONARQUBE_JDBC_URL
+  value: 'jdbc:postgresql://pg-primary.sandbox/sonar'
