@@ -81,10 +81,21 @@ objects:
     name: ${PG_SERVICE_NAME}
   spec:
     ports:
-    - nodePort: 0
+    - name: pgsql
+      nodePort: 0
       port: 5432
       protocol: TCP
       targetPort: 5432
+    - name: node-exporter
+      nodePort: 0
+      port: 9100
+      protocol: TCP
+      targetPort: 9100
+    - name:  postgres-exporter
+      nodePort: 0
+      port: 9187
+      protocol: TCP
+      targetPort: 9187
     selector:
       name: ${PG_SERVICE_NAME}
   status:
@@ -92,7 +103,6 @@ objects:
 - apiVersion: v1
   kind: DeploymentConfig
   metadata:
-    creationTimestamp: null
     name: ${PG_SERVICE_NAME}
   spec:
     replicas: 1
@@ -102,13 +112,13 @@ objects:
       activeDeadlineSeconds: 864001
       recreateParams:
         timeoutSeconds: 864000
-      resources: {}
       type: Recreate
     template:
       metadata:
-        creationTimestamp: null
         labels:
           name: ${PG_SERVICE_NAME}
+          crunchy_collect: "true"
+          crunchy-collect: "true"
           replicatype: trigger
       spec:
         nodeSelector:
@@ -199,34 +209,16 @@ objects:
             name: pgconf
             readOnly: true
         - env:
-          - name: PG_PORT
-            value: "5432"
-          - name: PROM_GATEWAY
-            value: http://${CRUNCHY_METRICS_SERVICE_NAME}:9091
-          - name: NODE_EXPORTER_URL
-            value: 'http://localhost:9100/metrics'
-          - name: POSTGRES_EXPORTER_URL
-            value: 'http://localhost:9187/metrics'
           - name: DATA_SOURCE_NAME
             value: >-
               postgresql://PRIMARY_USER:PRIMARY_PASSWORD@${PG_PRIMARY_SERVICE_NAME}:5432/postgres?sslmode=disable
-          - name: PG_ROOT_PASSWORD
-            valueFrom:
-              secretKeyRef:
-                key: pg-root-password
-                name: pg-secret
-          - name: PG_PRIMARY_USER
-            valueFrom:
-              secretKeyRef:
-                key: pg-primary-username
-                name: pg-secret
-          - name: PG_PRIMARY_PASSWORD
-            valueFrom:
-              secretKeyRef:
-                key: pg-primary-password
-                name: pg-secret
           image: ${CCP_IMAGE_PREFIX}/crunchy-collect:${CCP_IMAGE_TAG}
           name: collect
+          ports:
+          - containerPort: 9187
+            protocol: TCP
+          - containerPort: 9100
+            protocol: TCP
           volumeMounts:
           - mountPath: /pgdata
             name: pgdata
@@ -271,7 +263,7 @@ parameters:
   value: crunchydata
 - description: The image tag to use
   name: CCP_IMAGE_TAG
-  value: centos7-10.2-1.8.0
+  value: centos7-10.3-1.8.2
 - description: The name of the database that will be created
   name: PG_DATABASE
   value: sandbox
@@ -285,9 +277,6 @@ parameters:
   value: pg-primary
 - name: PG_PRIMARY_SERVICE_NAME
   value: pg-primary
-- description: crunchy metrics service
-  name: CRUNCHY_METRICS_SERVICE_NAME
-  value: crunchy-metrics
 - description: Requested size of data volume
   name: PG_DATA_STORAGE_SIZE
   value: 5Gi

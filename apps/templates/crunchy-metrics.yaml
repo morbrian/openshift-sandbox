@@ -11,16 +11,29 @@ objects:
 - apiVersion: v1
   kind: PersistentVolumeClaim
   metadata:
-    name: ${NAMESPACE}-crunchy-metrics-pvc
+    name: ${NAMESPACE}-metrics-prometheusdata-pvc
   spec:
     accessModes:
     - ReadWriteOnce
     resources:
       requests:
-        storage: ${CRUNCHY_METRICS_STORAGE_SIZE}
+        storage: ${METRICS_PROMETHEUS_STORAGE_SIZE}
     selector:
       matchLabels:
-        postgres: ${NAMESPACE}-crunchy-metrics
+        postgres: ${NAMESPACE}-metrics-prometheusdata
+- apiVersion: v1
+  kind: PersistentVolumeClaim
+  metadata:
+    name: ${NAMESPACE}-metrics-grafanadata-pvc
+  spec:
+    accessModes:
+    - ReadWriteOnce
+    resources:
+      requests:
+        storage: ${METRICS_GRAFANA_STORAGE_SIZE}
+    selector:
+      matchLabels:
+        postgres: ${NAMESPACE}-metrics-grafanadata
 - apiVersion: v1
   kind: Service
   metadata:
@@ -29,23 +42,19 @@ objects:
     name: ${CRUNCHY_METRICS_SERVICE_NAME}
   spec:
     ports:
-    - name: grafana
-      nodePort: 0
-      port: 3000
-      protocol: TCP
-      targetPort: 3000
     - name: prometheus
       nodePort: 0
       port: 9090
       protocol: TCP
       targetPort: 9090
-    - name: promgateway
+    - name: grafana
       nodePort: 0
-      port: 9091
+      port: 3000
       protocol: TCP
-      targetPort: 9091
+      targetPort: 3000
     selector:
       name: ${CRUNCHY_METRICS_SERVICE_NAME}
+    type: NodePort
   status:
     loadBalancer: {}
 - apiVersion: v1
@@ -70,6 +79,7 @@ objects:
           name: ${CRUNCHY_METRICS_SERVICE_NAME}
           replicatype: trigger
       spec:
+        serviceAccountName: prometheus-sa
         nodeSelector:
           kubernetes.io/hostname: ${PG_NODE}
         containers:
@@ -81,31 +91,39 @@ objects:
             protocol: TCP
           volumeMounts:
           - mountPath: /data
-            name: metrics
+            name: prometheusdata
             readOnly: false
-        - env: []
-          image: ${CCP_IMAGE_PREFIX}/crunchy-promgateway:${CCP_IMAGE_TAG}
-          name: crunchy-promgateway
-          ports:
-          - containerPort: 9091
-            protocol: TCP
-          volumeMounts: []
-        - env: []
+        - env:
+          - name: ADMIN_USER
+            valueFrom:
+              secretKeyRef:
+                key: admin-username
+                name: crunchy-metrics-secret
+          - name: ADMIN_PASS
+            valueFrom:
+              secretKeyRef:
+                key: admin-password
+                name: crunchy-metrics-secret
+          - name: PROM_HOST
+            value: ${CRUNCHY_METRICS_SERVICE_NAME}
+          - name: PROM_PORT
+            value: '9090'
           image: ${CCP_IMAGE_PREFIX}/crunchy-grafana:${CCP_IMAGE_TAG}
           name: crunchy-grafana
           ports:
           - containerPort: 3000
             protocol: TCP
-          securityContext:
-            capabilities: {}
           volumeMounts:
           - mountPath: /data
-            name: metrics
+            name: grafanadata
             readOnly: false
         volumes:
-        - name: metrics
+        - name: prometheusdata
           persistentVolumeClaim:
-            claimName: ${NAMESPACE}-crunchy-metrics-pvc
+            claimName: ${NAMESPACE}-metrics-prometheusdata-pvc
+        - name: grafanadata
+          persistentVolumeClaim:
+            claimName: ${NAMESPACE}-metrics-grafanadata-pvc
 parameters:
 - description: project namespace
   name: NAMESPACE
@@ -115,13 +133,16 @@ parameters:
   value: crunchydata
 - description: The image tag to use
   name: CCP_IMAGE_TAG
-  value: centos7-10.2-1.8.0
+  value: centos7-10.3-1.8.2
 - description: The kubernetes node label where the primary database container should run.
   name: PG_NODE
   value: ocp-node-01.example.com
 - description: crunchy metrics service
   name: CRUNCHY_METRICS_SERVICE_NAME
   value: crunchy-metrics
-- description: Requested size of metrics data volume
-  name: CRUNCHY_METRICS_STORAGE_SIZE
+- description: Requested size of prometheus metrics data volume
+  name: METRICS_PROMETHEUS_STORAGE_SIZE
+  value: 2Gi
+- description: Requested size of grafana metrics data volume
+  name: METRICS_GRAFANA_STORAGE_SIZE
   value: 2Gi

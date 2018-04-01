@@ -12,26 +12,49 @@ objects:
   kind: PersistentVolume
   metadata:
     labels:
-      postgres: ${NAMESPACE}-crunchy-metrics
-    name: ${NAMESPACE}-crunchy-metrics-pv
+      postgres: ${NAMESPACE}-metrics-prometheusdata
+    name: ${NAMESPACE}-metrics-prometheusdata-pv
   spec:
     claimRef:
-      name: ${NAMESPACE}-crunchy-metrics-pvc
+      name: ${NAMESPACE}-metrics-prometheusdata-pvc
       namespace: ${NAMESPACE}
     accessModes:
     - ReadWriteOnce
     capacity:
-      storage: ${CRUNCHY_METRICS_STORAGE_SIZE}
+      storage: ${METRICS_PROMETHEUS_STORAGE_SIZE}
     hostPath:
-      path: ${CRUNCHY_METRICS_PV_PATH}
+      path: ${METRICS_PROMETHEUS_PV_PATH}
+    persistentVolumeReclaimPolicy: Retain
+- apiVersion: v1
+  kind: PersistentVolume
+  metadata:
+    labels:
+      postgres: ${NAMESPACE}-metrics-grafanadata
+    name: ${NAMESPACE}-metrics-grafanadata-pv
+  spec:
+    claimRef:
+      name: ${NAMESPACE}-metrics-grafanadata-pvc
+      namespace: ${NAMESPACE}
+    accessModes:
+    - ReadWriteOnce
+    capacity:
+      storage: ${METRICS_GRAFANA_STORAGE_SIZE}
+    hostPath:
+      path: ${METRICS_GRAFANA_PV_PATH}
     persistentVolumeReclaimPolicy: Retain
 parameters:
 - name: NAMESPACE
   value: project
-- description: Host path of backrest repo.
-  name: CRUNCHY_METRICS_PV_PATH
-  value: /var/appdata/namespace/metrics
-- description: Requested size of backrest volume
-  name: CRUNCHY_METRICS_STORAGE_SIZE
+- description: Host path of prometheus repo.
+  name: METRICS_PROMETHEUS_PV_PATH
+  value: /var/appdata/namespace/metrics-prometheus
+- description: Host path of grafana repo.
+  name: METRICS_GRAFANA_PV_PATH
+  value: /var/appdata/namespace/metrics-grafana
+- description: Requested size of prometheus volume
+  name: METRICS_PROMETHEUS_STORAGE_SIZE
+  value: 2Gi
+- description: Requested size of grafana volume
+  name: METRICS_GRAFANA_STORAGE_SIZE
   value: 2Gi
 

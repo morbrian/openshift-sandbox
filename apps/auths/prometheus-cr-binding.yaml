@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ClusterRoleBinding
+metadata:
+  name: prometheus-cr-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  name: prometheus-cr
+  kind: ClusterRole
+subjects:
+- kind: ServiceAccount
+  name: prometheus-sa
+  namespace: sandbox
