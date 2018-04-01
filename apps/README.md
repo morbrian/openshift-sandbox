@@ -30,7 +30,7 @@ on the nodes, so we'll go ahead and just use that space to get started.
 2. Prepare folders for the PostgreSQL examples (still **ocp-node-01**):
 
         # make the directory tree to house data the primary and replica containers
-        sudo mkdir -p /var/appdata/sandbox/{primary,replica}/{data,wal,log,backup,backrestrepo,metrics}
+        sudo mkdir -p /var/appdata/sandbox/{primary,replica}/{data,wal,log,backup,backrestrepo,metrics-prometheus,metrics-grafana}
 
 3. Change permissions so the container will have sufficient access to the data folders.
 
@@ -41,7 +41,7 @@ on the nodes, so we'll go ahead and just use that space to get started.
         sudo chmod -R 770 /var/appdata
         
         # assign SELinux attribute to give processes in a container access to these folders
-        sudo chcon -Rt svirt_sandbox_file_t /var/appdata/sandbox/{primary,replica}/{data,wal,log,backup,backrestrepo,metrics}
+        sudo chcon -Rt svirt_sandbox_file_t /var/appdata/sandbox/{primary,replica}/{data,wal,log,backup,backrestrepo,metrics-prometheus,metrics-grafana}
 
 
 ## Load Sandbox Templates
@@ -340,7 +340,7 @@ Example FULL restore command (use this if the entire database partition was lost
 pgbackrest --config=/pgconf/pgbackrest.conf --stanza=db --log-level-console=info restore
 ```    
 
-Example DELTA restore command (use this to save time when most of the database is ok by some files are corrupt)
+Example DELTA restore command (use this to save time when most of the database is ok but some files are corrupt)
 
 ``` 
 pgbackrest --config=/pgconf/pgbackrest.conf --stanza=db --log-level-console=info --delta restore
@@ -372,17 +372,27 @@ pgbackrest --stanza=db --log-level-console=info backup
     
 ## Crunchy Metrics for PostgreSQL
 
-[crunchy-metrics]: https://github.com/CrunchyData/crunchy-containers/blob/master/docs/metrics.adoc
+[crunchy-metrics]: https://github.com/CrunchyData/crunchy-containers/blob/master/docs/containers.adoc#crunchy-collect
 
 CrunchyData Metrics provides a configuration of Prometheus and Grafana to support monitoring
 the performance of a PostgreSQL cluster. See [crunchy-metrics] for additional details.
 
-1. A subfolder for metrics data was created during *Simple Volume Provisioning* at 
-`/var/appdata/sandbox/primary/metrics`, and the crunchy-metrics *PersistentVolume* template called was imported when we
-ran  `init-pg-templates.sh`. The next steps assume we are starting with those steps already done,
+0. Load the crunchy-metrics prometheus authorization objects.
+
+We did not do this automatically with the earlier templates because it impacts the security context
+authorizations and would prefer to do it explicitly here.
+
+Follow the instructions under [auths/README.md](auths/README.md)
+
+1. Create the crunchy-metrics-secret object from template: In web-console, add to project, browse catalog for 'crunchy-metrics-secret'
+
+2. A subfolder for metrics data was created during *Simple Volume Provisioning* at 
+`/var/appdata/sandbox/primary/metrics-{grafana,prometheus}`, and the crunchy-metrics 
+*PersistentVolume* template called was imported when we ran  `init-pg-templates.sh`. 
+The next steps assume we are starting with those steps already done,
 along with the sandbox project and PostgreSQL already prepared.
 
-2. Create storage volumes for primary database: In web-console, add to project, browse catalog for 'crunchy-metrics-vols'
+3. Create storage volumes for primary database: In web-console, add to project, browse catalog for 'crunchy-metrics-vols'
    
        *This step requires a user with cluster-admin privileges.*
    
@@ -391,18 +401,28 @@ along with the sandbox project and PostgreSQL already prepared.
            * assumes node-locked postgres pod
            * assumes the path exists on node
            * Convention: /appdata/<namespace>/<mode>/purpose
-           * Example: /var/appdata/sandbox/primary/metrics
+           * Example: /var/appdata/sandbox/primary/metrics-grafana
        * XXX_SIZE
            * assumes appropriately sized physical volumes
            * remember these numbers, used again when creating primary instance.
 
-3. Create PostgreSQL Primary instance: In web-console, add to project, browse catalog for 'crunchy-metrics'
+4. Create PostgreSQL Primary instance: In web-console, add to project, browse catalog for 'crunchy-metrics'
    
        * NAMESPACE: change to project name
        * PG_NODE: review node, make sure this is where the physical volumes are located.
        * XXX_SIZE: review sizes, this should be equal to or less than the configured volume sizes.
 
-4. Validation Steps
+5. The `crunchy-metrics` service specifies two NodePort values, one for each of prometheus and grafana.
+Specifying a NodePort this way requires the NodePort to be open on the target host, and we are unwilling
+and unable to make that happen on a secure network. 
+
+Instead, we specify a non-port, nodePort=0. Optionally, in environments where other ports are allowed,
+Crunch-Data provided these suggested example default ports: prometheus=30001 and grafana=30002.
+
+For our example cluster, we will instead create a route to the service for each service port,
+described in detail in the next step.
+
+6. Validation Steps
 
     1. Currently need to create routes to grafana and prometheus services
         
@@ -413,16 +433,14 @@ along with the sandbox project and PostgreSQL already prepared.
     2. Earlier steps glossed over the metrics related environment variables when configuring the
     `crunchy-collect` container in the pg-primary setup. These need to be reviewed and updated at this point.
     
-        * PROM_GATEWAY
-        
-        * NODE_EXPORTER_URL
-        
-        * POSTGRES_EXPORTER_URL
-        
-        * DATA_SOURCE_NAME
+        * DATA_SOURCE_NAME: update with username/password from the pg-secret
+        * TODO: this really should be a secret as well.
   
-    3. Connect to grafana and configure data source, and load crunchy dashboard,
-    see [crunchy-metrics] for how to do this.
+    3. Connect to grafana and login with the admin user/password found in crunchy-metrics-secret
+    
+        [grafana-grafana]() Will be the URL of the Route configured for the grafana service.
+        
+    4. Clicking on 'Home' then 'PostgreSQL Details' should provide interesting graphs populated with data.
 
 
 ## Sonarqube

@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: ClusterRole
+metadata:
+  name: prometheus-cr
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - get
+  - list
+  - watch
+- nonResourceURLs:
+  - /metrics
+  resources: []
+  verbs:
+  - get
+  - list
+  - watch
