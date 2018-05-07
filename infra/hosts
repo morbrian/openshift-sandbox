@@ -1,6 +1,6 @@
 #
 # Reference:
-# https://docs.openshift.com/container-platform/3.6/install_config/install/advanced_install.html
+# https://docs.openshift.org/3.9/install_config/install/advanced_install.html#install-config-install-advanced-install
 #
 
 [OSEv3:children]
@@ -17,18 +17,22 @@ etcd
 containerized=True
 deployment_type=origin
 openshift_deployment_type=origin
-openshift_release=3.6
-openshift_pkg_version=v3.6.0
-openshift_image_tag=v3.6.0
+openshift_release=3.9
+openshift_pkg_version=v3.9.0
+openshift_image_tag=v3.9.0
 openshift_master_cluster_public_hostname=cluster.lionel.io
 openshift_master_default_subdomain=cluster.lionel.io
-openshift_master_identity_providers=[{'name': 'htpasswd_auth', 'login': 'true', 'challenge': 'true', 'kind': 'HTPasswdPasswordIdentityProvider', 'filename': '/etc/origin/master/htpasswd'}]
+openshift_master_identity_providers=[{'name': 'htpasswd_auth', 'login': 'True', 'challenge': 'True', 'kind': 'HTPasswdPasswordIdentityProvider', 'filename': '/etc/origin/master/htpasswd'}]
 ansible_ssh_user=ocp_admin
-ansible_become=true
+ansible_become=True
 openshift_master_cluster_hostname=cluster.lionel.io
-openshift_override_hostname_check=true
+openshift_override_hostname_check=True
 openshift_router_selector="region=infra"
 openshift_registry_selector="region=infra"
+openshift_master_audit_config={"enabled": True, "auditFilePath": "/var/log/openpaas-oscp-audit/openpaas-oscp-audit.log", "maximumFileRetentionDays": 14, "maximumFileSizeMegabytes": 500, "maximumRetainedFiles": 5}
+os_firewall_use_firewalld=True
+
+
 
 #
 # metrics
@@ -37,22 +41,35 @@ openshift_registry_selector="region=infra"
 # See: vols/metrics-pv.yml, expects hostpath on infra node.
 # TODO: can we provision volume with ansible?
 #
-#openshift_hosted_metrics_deploy=true
-#openshift_metrics_install_metrics=True
-#openshift_hosted_metrics_deployer_prefix=openshift/origin-
+# the hawkular hostname must also be updated in the webconsole-configmap
+# see: https://docs.openshift.org/3.9/install_config/cluster_metrics.html#install-setting-the-metrics-public-url
+#
+openshift_metrics_hawkular_hostname=hawkular-metrics.cluster.lionel.io
+openshift_metrics_install_metrics=True
+openshift_metrics_image_prefix=openshift/origin-
 ###openshift_metrics_image_version=v1.3
 ###openshift_hosted_metrics_deployer_version=v3.6.0
-#openshift_metrics_hawkular_hostname=hawkular-metrics.cluster.lionel.io
-#openshift_metrics_duration=30
-#openshift_metrics_resolution=30s
-#openshift_metrics_cassandra_nodeselector={"region":"infra"}
-#openshift_metrics_hawkular_nodeselector={"region":"infra"}
-#openshift_metrics_heapster_nodeselector={"region":"infra"}
+openshift_metrics_duration=30
+openshift_metrics_resolution=30s
+openshift_metrics_cassandra_nodeselector={"region":"infra"}
+openshift_metrics_hawkular_nodeselector={"region":"infra"}
+openshift_metrics_heapster_nodeselector={"region":"infra"}
 ### storage will use {emptyDir} by default and not be persistent
 ### currently it's easier to let it install with the ephemeral emptyDir
 ### and then add peristent volume afterward
-#openshift_metrics_cassandra_storage_type=pv
-#openshift_metrics_cassandra_pvc_size=10G
+openshift_metrics_cassandra_storage_type=pv
+openshift_metrics_cassandra_pvc_size=10G
+
+#
+# Prometheus metrics
+# technology preview in 3.9
+# see: https://docs.openshift.org/3.9/install_config/cluster_metrics.html#openshift-prometheus
+#
+openshift_hosted_prometheus_deploy=True
+openshift_prometheus_namespace=openshift-metrics
+openshift_prometheus_node_selector={"region":"infra"}
+
+
 
 #
 # logging
@@ -61,30 +78,34 @@ openshift_registry_selector="region=infra"
 # See: vols/logging-es-pv.yml and vols/logging-es-ops.pv.yml, expected  host paths on infra node.
 # TODO: can we provision volumes with ansible?
 #
-#openshift_hosted_logging_deploy=true
-#openshift_hosted_logging_deployer_prefix=openshift/origin-
+# see: https://docs.openshift.org/3.9/install_config/aggregate_logging.html#overview
+# storage estimates: https://docs.openshift.org/3.9/install_config/aggregate_logging_sizing.html#install-config-aggregate-logging-sizing-guidelines-storage
+#
+openshift_logging_install_logging=True
+openshift_logging_image_prefix=openshift/origin-
 ###openshift_hosted_logging_deployer_version=v3.6.0
 ###openshift_hosted_logging_storage_kind=
-#openshift_hosted_logging_hostname=kibana-logging.cluster.lionel.io
-#openshift_logging_use_ops=true
-#openshift_logging_namespace=logging
-#openshift_logging_es_cluster_size=1
-#openshift_logging_es_nodeselector={"region":"infra"}
-#openshift_logging_kibana_nodeselector={"region":"infra"}
-#openshift_logging_curator_nodeselector={"region":"infra"}
-#openshift_logging_es_ops_nodeselector={"region":"infra"}
-#openshift_logging_kibana_ops_nodeselector={"region":"infra"}
-#openshift_logging_curator_ops_nodeselector={"region":"infra"}
+openshift_logging_kibana_hostname=kibana-logging.cluster.lionel.io
+openshift_logging_use_ops=True
+# namespace is reported as deprecated, but still documented in 3.9 without an obvious alternative
+openshift_logging_namespace=logging
+openshift_logging_es_cluster_size=1
+openshift_logging_es_nodeselector={"region":"infra"}
+openshift_logging_kibana_nodeselector={"region":"infra"}
+openshift_logging_curator_nodeselector={"region":"infra"}
+openshift_logging_es_ops_nodeselector={"region":"infra"}
+openshift_logging_kibana_ops_nodeselector={"region":"infra"}
+openshift_logging_curator_ops_nodeselector={"region":"infra"}
 ### the persistent volume must be set up separately with the labels indicated
-#openshift_logging_es_pv_selector={"logging":"logging-es"}
-#openshift_logging_es_pvc_size=10Gi
-#openshift_logging_es_ops_pv_selector={"logging":"logging-es-ops"}
-#openshift_logging_es_ops_pvc_size=10Gi
+openshift_logging_es_pv_selector={"logging":"logging-es"}
+openshift_logging_es_pvc_size=10Gi
+openshift_logging_es_ops_pv_selector={"logging":"logging-es-ops"}
+openshift_logging_es_ops_pvc_size=10Gi
 
 
 [nodes]
 ocp-infra-01.lionel.io  openshift_public_ip=172.16.22.201 openshift_ip=172.16.22.201 openshift_public_hostname=ocp-infra-01.lionel.io openshift_hostname=ocp-infra-01.lionel.io containerized=True openshift_node_labels="{'region': 'infra'}" openshift_schedulable=True ansible_become=yes
-ocp-master-01.lionel.io  openshift_public_ip=172.16.22.200 openshift_ip=172.16.22.200 openshift_public_hostname=ocp-master-01.lionel.io openshift_hostname=ocp-master-01.lionel.io containerized=True connect_to=ocp-master-01.lionel.io openshift_schedulable=False
+ocp-master-01.lionel.io  openshift_public_ip=172.16.22.200 openshift_ip=172.16.22.200 openshift_public_hostname=ocp-master-01.lionel.io openshift_hostname=ocp-master-01.lionel.io containerized=True connect_to=ocp-master-01.lionel.io openshift_schedulable=True
 ocp-node-01.lionel.io  openshift_public_ip=172.16.22.202 openshift_ip=172.16.22.202 openshift_public_hostname=ocp-node-01.lionel.io openshift_hostname=ocp-node-01.lionel.io containerized=True connect_to=ocp-node-01.lionel.io openshift_node_labels="{'region': 'apps'}" openshift_schedulable=True
 ocp-node-02.lionel.io  openshift_public_ip=172.16.22.203 openshift_ip=172.16.22.203 openshift_public_hostname=ocp-node-02.lionel.io openshift_hostname=ocp-node-02.lionel.io containerized=True connect_to=ocp-node-02.lionel.io openshift_node_labels="{'region': 'apps'}" openshift_schedulable=True
 

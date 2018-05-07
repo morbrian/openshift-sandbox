@@ -2,6 +2,7 @@
 
 [web-console]: https://cluster.example.com:8443  "Origin Web Console"
 [minishift]: https://www.openshift.org/minishift/ "Minishift"
+[openshift-origin]: https://docs.openshift.org/3.9/install_config/install/prerequisites.html
 [advanced-install]: https://docs.openshift.org/latest/install_config/install/advanced_install.html
 
 Creates a simple OpenShift cluster useful for experimentation with various aspects of managing
@@ -46,11 +47,11 @@ described here is designed to provide a bit more hands on experience with cluste
 
 4. Import all of the VMs just created:
 
-        ./import.sh
+        ./cluster.sh import
         
 5. Start all the VMs
 
-        ./start-all.sh
+        ./cluster.sh start
         
 6. Log into ocp-infra-01
 
@@ -74,25 +75,62 @@ described here is designed to provide a bit more hands on experience with cluste
     
     * https://docs.openshift.org/latest/install_config/install/advanced_install.html#running-the-advanced-installation-system-container
 
-9. As `ocp_admin` user on ocp-infra-01, verify prerequisites are met.
+    * prepare for handling sudo password.
+            
+            # two options discussed here, and while using ansible-vault woudl be ideal,
+            # i have only been able to make the openshift scripts work with passwordless sudo
+    
+            # create the secret vault
+            ansible-vault create secret
+            
+            # first time vault creation, create password
+            # enter following content into editor and save
+            # replacing ocp_admin_password with the actual password for ocp_admin
+            # can be changed alter with: ansible-vault edit secret
+            ansible_sudo_pass: ocp_admin_password
+            
+            # then ideally we would be able to type things like
+            ansible-playbook --ask-vault-pass -i <inventory> <playbook>
+            
+            # but this didn't work in my test run,
+            # so i logged into each node/infra/master and did 'visudo'
+            # to enable passwordless sudo for wheel group
+    
+9. As `root` user on ocp-infra-01, verify prerequisites are met.
 
-        ansible-playbook -i /home/ocp_admin/ocp/hosts /home/ocp_admin/openshift-ansible/playbooks/prerequisites.yml
+        * This also requires editing /home/ocp_admin/ocp/hosts to set the ssh_user to root.
+        * Remove "become" from hosts inventory
+        * Must set up SSHD to permit root logins.
+        * Must configure root to login into remotes without password.
+
+        sudo -i atomic install --system \
+            --storage=ostree \
+            --set INVENTORY_FILE=/home/ocp_admin/ocp/hosts \ 
+            --set PLAYBOOK_FILE=/usr/share/ansible/openshift-ansible/playbooks/prerequisites.yml \
+            --set OPTS="-v" \
+            docker.io/openshift/origin-ansible:v3.9
        
-9. ??? check ??? (this was in the docs i read later but i didn't do this step)
+9. Perform pre-install tasks (optional: skipped when installing 3.6; included when installing 3.9)
 
-        atomic install --system \
+        * same rules as above, run as root, configure root ssh privs.
+        
+        sudo -i atomic install --system \
             --storage=ostree \
             --set INVENTORY_FILE=/home/ocp_admin/ocp/hosts \
-            --set PLAYBOOK_FILE=/usr/share/ansible/openshift-ansible/playbooks/openshift-checks/pre-install.yml \ 
-            --set OPTS="-v" \ 
-            docker.io/openshift/origin-ansible:v3.6
+            --set PLAYBOOK_FILE=/usr/share/ansible/openshift-ansible/playbooks/openshift-checks/pre-install.yml \
+            --set OPTS="-v" \
+            docker.io/openshift/origin-ansible:v3.9
         
 10. As user `ocp_admin` on ocp-infra-01, run install as a system container:
 
-         atomic install --system \
+        # in 3.6 did not specify the yaml playbook, and did not prefix with sudo
+        # in 3.9 (with the playbook specified) saw bwrap_oci error, so prefixed with sudo
+
+         sudo -i atomic install --system \
             --storage=ostree \
             --set INVENTORY_FILE=/home/ocp_admin/ocp/hosts \
-            docker.io/openshift/origin-ansible:v3.6    
+            --set PLAYBOOK_FILE=/usr/share/ansible/openshift-ansible/playbooks/deploy_cluster.yml \
+            docker.io/openshift/origin-ansible:v3.9    
 
 11. When this completes??? 
 
@@ -374,7 +412,7 @@ provides some reasonable next steps by making some assumptions about the cluster
     1. A link for where to find the `oc` binary can be found on the [web-conole] by going to the help `?` and choosing *Command Line Tools*, 
     then find the release compatible with the installed server version. 
     
-    Right now, the latest for 3.6 is: https://github.com/openshift/origin/releases/tag/v3.6.1
+    Right now, the latest for 3.9 is: https://github.com/openshift/origin/releases/tag/v3.9.0
     
     1. Download and extract the client-tools archive for your platform, putting the `oc` binary in your PATH.
     
@@ -445,13 +483,5 @@ Add an address line to support the wildcard domain for the cluster
         # where the above is the cluster domain and the ip address of ocp-infra-01 
 
 
-TODO: probably better to specify the interface... but working on issues.
-
-TODO: if using the interface, consider also specifying this setting with the NIC identifier no-dhcp-interface=<ifcx>
-
-TODO: I generally can't get dnsmasq to start correctly because the interface is not ready yet.
-
-
-
-
+TODO: in a previous iteration I had VMWare workstation installed, and a related process it included interfered with dnsmasq during bootup.
 

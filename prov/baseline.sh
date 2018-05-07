@@ -8,14 +8,16 @@ yum -y install atomic
 yum -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
 sed -i -e \"s/^enabled=1/enabled=0/\" /etc/yum.repos.d/epel.repo
 yum -y --enablerepo=epel install ansible pyOpenSSL
-yum -y install docker-1.12.6
+
+# start firwalld to be sure its up before docker
+# documentation says if firewalld is restarted/reloaded, then docker must also be restarted
+systemctl enable firewalld
+systemctl start firewalld
+
+yum -y install docker-1.13.1
 yum -y install python-rhsm-certificates
 hostnamectl set-hostname ${NEW_HOSTNAME}
 
-#docker requires iptables, but firewalld (which controls iptables) conflicts
-#although openshift docs recommend using firewalld for new installs (TODO: figure out firewalld/docker issue)
-systemctl enable iptables
-systemctl disable firewalld
 
 # configure docker pool
 cat <<EOF > /etc/sysconfig/docker-storage-setup
@@ -28,3 +30,4 @@ docker-storage-setup
 rm -rf /var/lib/docker/*
 systemctl enable docker
 systemctl restart docker
+

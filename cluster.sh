@@ -24,7 +24,7 @@ status()
 }
 
 usage() {
-    echo "Usage: $0 {start}stop|status|import}}"
+    echo "Usage: $0 {start|stop|status|import}"
     RETVAL="2"
 }
 
@@ -35,6 +35,14 @@ import() {
         vboxmanage modifyvm ${vm} --nic1 bridged --bridgeadapter1 ${NIC}
     done
 }
+
+remove() {
+    NIC=eno1
+    for vm in ${VMS}; do
+        vboxmanage unregistervm $vm --delete
+    done
+}
+
 
 
 
@@ -51,6 +59,9 @@ case "$action" in
         ;;
     import)
         import
+        ;;
+    remove)
+        remove
         ;;
     *)
         usage
