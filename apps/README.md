@@ -478,3 +478,226 @@ oc adm policy add-scc-to-user privileged -n devops -z sonarqube
 Use JDBC URL = jdbc:postgresql://pg-primary.sandbox/sonar
 
 6. Initial default login is admin / admin
+
+## gitlab-runner
+
+1. Create template 
+
+  ``` 
+  oc create -n devops -f templates/gitlab-runner.yaml
+  oc create -n devops -f templates/gitlab-runner-config.yaml
+  ```
+2. Create `gitlab-managed-apps` project
+
+  ```
+  oc new-project gitlab-managed-apps
+  ```
+
+3. Create a service account for the `gitlab-runner`
+
+  ``` 
+  TODO: this first gitlab service account may not be needed, artifact of initial experimenting
+  oc create serviceaccount gitlab -n devops
+  oc adm policy add-scc-to-user privileged -n devops -z gitlab
+  
+  oc create serviceaccount gitlab-runner -n devops
+  oc adm policy add-scc-to-user privileged -n devops -z gitlab-runner
+  oc adm policy add-role-to-user edit system:serviceaccount:devops:gitlab-runner -n gitlab-managed-apps
+  oc adm policy add-role-to-user view system:serviceaccount:devops:gitlab-runner -n gitlab-managed-apps
+  ```
+
+   
+4. GitLab Install Helm (TODO: this never worked)
+
+Need the following first: 
+
+* Token for gitlab-runner serviceaccount:
+
+    oc serviceaccounts get-token gitlab-runner
+    
+* CA certificate bundle (OpenShift/Kubernetes):
+
+    OpenShift/Kubernetes Master node:
+    /etc/origin/master/ca.crt
+
+* TODO: Failes with:
+
+    Something went wrong while installing Helm Tiller
+    
+    ERROR: Unable to lock database: Permission denied ERROR: Failed to open apk database: Permission denied
+    
+5. Manually register `gitlab-runnter` 
+
+  Terminal into the deployed `gitlab-runner`
+  
+      gitlab-runner register
+      # coordinator url: http://gitlab.example.com
+      # gitlab-ci token: [from gitlab project-settings --> CI/CD --> General --> Runner Token]
+      # gitlab-ci description: [awesome or something]
+      # gitlab-ci tags: java,maven
+      # untagged builds: false
+      # lock to current project: false
+      # executor: kubernetes
+
+  Above will generate a file like the following at /etc/gitlab-runner/config.toml
+  
+      oncurrent = 1
+      check_interval = 0
+      
+      [[runners]]
+        name = "awesome"
+        url = "http://gitlab.lionel.io"
+        token = "xxxx"
+        executor = "kubernetes"
+        [runners.cache]
+        [runners.kubernetes]
+          host = ""
+          bearer_token_overwrite_allowed = false
+          image = ""
+          namespace = ""
+          namespace_overwrite_allowed = ""
+          privileged = false
+          service_account_overwrite_allowed = ""
+          pod_annotations_overwrite_allowed = ""
+          [runners.kubernetes.volumes]       
+          
+  Editing the file will automatically cause a reload of the runner.
+  
+  Edit the file as follows:
+  
+      (leave token = "....", this must be encoded version of what we entered)
+      image = "busybox"
+      namespace = "devops"
+      
+
+
+## Kubernetes / Gitlab Troubleshooting
+
+#### X509 SSL error when attempt Help Install
+
+This error can seem mysterious at first, but happens primarily due to authentication errors
+when gitlab attemps a connection to Kubernetes. Even if the X509 server trust is configured correctly,
+this error may still occur when gitlab does not provide the correct token for a valid user/serviceaccount.
+
+  Verify the correct CA Certificate was collected from OpenShift/Kubernetes Master node.
+  
+      /etc/origin/master/ca.crt
+  
+  Verify a service account was created, and the correct token was used.
+  
+      oc serviceaccounts get-token gitlab-runner
+      
+#### Acess errors when installing Help Tiller
+
+Gitlab expects a project to already exist called `gitlab-managed-apps`, and the serviceaccount
+identified by the provided token must have suficient access rights to the project.
+
+  Create the project
+  
+      oc create project gitlab-managed-apps
+    
+  Assign privileges
+  
+      oc adm policy add-role-to-user edit system:serviceaccount:devops:gitlab-runner -n gitlab-managed-apps
+      oc adm policy add-role-to-user view system:serviceaccount:devops:gitlab-runner -n gitlab-managed-apps
+       
+       
+#### No default image specified 
+
+  The `gitlab-runner` container does not specify a runner in the `config.toml` file.
+  
+      Edit /etc/gitlab-runner/config.toml
+      Under section [runners.kubernetes], set following as appropriate:
+      image = "busybox"
+      namespace = "devops"
+
+
+#### Cannot create pods in the namespace
+
+  The serviceaccount is unspecified or incorrectly named. Our instructions set up an account called `gitlab-runner`
+  
+      Edit /etc/gitlab-runner/config.toml
+
+#### Checking for jobs forbidden
+
+  The identified runner is not registered (perhaps it was deleted)
+  
+      Register the runner from terminal within the gitlab-runner container 
+      gitlab-runner register      
+      
+  This will create a new runner section in the /etc/gitlab-runner/config.toml file. It may be a good idea
+  to review other listed runners and delete them if no longer valid.
+
+
+
+references:
+https://docs.gitlab.com/runner/executors/kubernetes.html
+https://docs.gitlab.com/runner/configuration/advanced-configuration.html#the-runners-kubernetes-section
+
+
+
+
+
+--------------------------
+4. Get token for gitlab-runner service account:
+
+    oc serviceaccounts get-token gitlab-runner
+  
+    # reference: https://docs.openshift.org/latest/rest_api/index.html
+ 
+ 
+--------  
+  
+3. Register runner
+
+The runner did not auto-register itself at start up, I was able to register manually.
+
+
+ 
+    
+2. Create instance of configmap
+
+  ````
+  
+  ````   
+  READING:
+ https://docs.gitlab.com/runner/install/kubernetes.html 
+
+-- references
+https://docs.gitlab.com/runner/install/kubernetes.html
+https://docs.gitlab.com/runner/configuration/advanced-configuration.html#the-runners-kubernetes-section
+
+
+On openshift master:
+
+openssl genrsa -out gitlab-runner.key 4096
+openssl req -sha256 -new -key gitlab-runner.key -out gitlab-runner.csr -subj "/CN=gitlab-runner"
+
+Notes: https://kubernetes.io/docs/tasks/tls/managing-tls-in-a-cluster/
+
+cat <<EOF | kubectl create -f -
+apiVersion: certificates.k8s.io/v1beta1
+kind: CertificateSigningRequest
+metadata:
+  name: gitlab-runner.devops 
+spec:
+  groups:
+  - system:authenticated
+  request: $(cat gitlab-runner.csr | base64 | tr -d '\n')
+  usages:
+  - digital signature
+  - key encipherment
+  - server auth
+EOF
+
+
+verify: 
+kubectl describe csr gitlab-runner.devops
+
+
+approve
+kubectl certificate approve gitlab-runner.devops
+
+
+
+

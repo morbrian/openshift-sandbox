@@ -337,7 +337,7 @@ The above will end up failing and we will need to do some manual intervention.
 oc policy add-role-to-user edit system:serviceaccount:logging:deployer -n logging
 ```
 
-* Needed to edit deploymens for logging-es-data and logging-es-ops-data to change container name.
+* Needed to edit deployments for logging-es-data and logging-es-ops-data to change container name.
 
 ````bash
 openshift/oauth-proxy:v1.0.0   instead of openshift/origin-oauth-proxy:v1.0.0

@@ -1,0 +1,21 @@
+oncurrent = 1
+check_interval = 0
+
+[[runners]]
+  name = "progress-please"
+  url = "http://gitlab.lionel.io"
+  token = "replace with gitlab-runner token, maybe base64 encoded?"
+  executor = "kubernetes"
+  [runners.cache]
+  [runners.kubernetes]
+    host = ""
+    bearer_token_overwrite_allowed = false
+    bearer_token = "replace with kubernetes token"
+    image = "busybox"
+    namespace = "devops"
+    namespace_overwrite_allowed = ""
+    privileged = false
+    service_account = "gitlab-runner"
+    service_account_overwrite_allowed = ""
+    pod_annotations_overwrite_allowed = ""
+    [runners.kubernetes.volumes]

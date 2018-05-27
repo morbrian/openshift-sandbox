@@ -1,0 +1,41 @@
+apiVersion: v1
+kind: Template
+metadata:
+  annotations:
+    description: gitlab-runner-config
+    iconClass: icon-database
+    tags: gitlab,devops
+  creationTimestamp: null
+  name: gitlab-runner-config
+objects:
+- apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: ${GITLAB_CONFIG_NAME}
+  data:
+    config.toml: |
+      concurrent = 4
+
+      [[runners]]
+        name = "Kubernetes Runner"
+        url = "${GITLAB_URL}"
+        token = "${RUNNER_TOKEN}"
+        executor = "kubernetes"
+        tags = "java,maven"
+        [runners.kubernetes]
+          namespace = "${NAMESPACE}"
+          image = "busybox"
+parameters:
+- description: project namespace
+  name: NAMESPACE
+  value: changeit
+- description: repository configmap
+  name: GITLAB_CONFIG_NAME
+  value: java-crypto
+- description: gitlab server url
+  name: GITLAB_URL
+  value: http://gitlab.lionel.io/ci/
+- description: gitlab-runner token
+  name: RUNNER_TOKEN
+  value: GoByzshDPyy2cJs9BZEm
+
